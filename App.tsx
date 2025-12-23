@@ -3,7 +3,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { 
   ShoppingCart, Star, Settings,
   LogOut, Edit2, Trash2, Plus, X, Loader2, Lock, Mail, UserPlus, LogIn,
-  Instagram, Facebook, AlertTriangle, CheckCircle, Zap, Palette, Image as ImageIcon, Gamepad2, Layers, Check, Wifi, WifiOff, Terminal, Copy, HelpCircle, Rocket, ShieldCheck, RefreshCcw, ExternalLink, Activity, Globe, Search, Info, Download, Box, Monitor, AlertOctagon, Wallet, MessageCircle, Save, TrendingUp, Users, ShoppingBag, Eye, Clock, Type, Send, Languages, Phone, CreditCard, Calendar, Tag, ChevronRight, Link as LinkIcon
+  Instagram, Facebook, AlertTriangle, CheckCircle, Zap, Palette, Image as ImageIcon, Gamepad2, Layers, Check, Wifi, WifiOff, Terminal, Copy, HelpCircle, Rocket, ShieldCheck, RefreshCcw, ExternalLink, Activity, Globe, Search, Info, Download, Box, Monitor, AlertOctagon, Wallet, MessageCircle, Save, TrendingUp, Users, ShoppingBag, Eye, Clock, Type, Send, Languages, Phone, CreditCard, Calendar, Tag, ChevronRight, Link as LinkIcon, ArrowUp, ArrowDown
 } from 'lucide-react';
 import { Game, User, CartItem } from './types.ts';
 import GameCard from './components/GameCard.tsx';
@@ -225,8 +225,33 @@ const App: React.FC = () => {
 
   const fetchInitialData = async () => {
     try {
-      const { data: gamesData, error: gamesError } = await supabase.from('games').select('*').order('created_at', { ascending: false });
-      if (!gamesError && gamesData) setGames(gamesData);
+      // Tenta buscar ordenado por display_order (recurso novo)
+      let { data: gamesData, error: gamesError } = await supabase
+        .from('games')
+        .select('*')
+        .order('display_order', { ascending: true });
+      
+      // Se houver erro (provavelmente a coluna display_order não existe ainda no Supabase),
+      // fazemos o fallback para a ordenação padrão por data de criação para que os produtos APAREÇAM.
+      if (gamesError) {
+        console.warn("Ordenação personalizada indisponível, usando fallback.", gamesError);
+        const fallback = await supabase
+          .from('games')
+          .select('*')
+          .order('created_at', { ascending: true });
+        
+        gamesData = fallback.data;
+        gamesError = fallback.error;
+      }
+      
+      if (!gamesError && gamesData) {
+        // Preenche o display_order na memória se vier nulo do banco
+        const sanitizedGames = gamesData.map((g, idx) => ({
+             ...g,
+             display_order: g.display_order !== null && g.display_order !== undefined ? g.display_order : idx
+        }));
+        setGames(sanitizedGames);
+      }
 
       const { data: settingsData, error: settingsError } = await supabase.from('site_settings').select('key, value');
       if (!settingsError && settingsData) {
@@ -292,6 +317,34 @@ const App: React.FC = () => {
     }
   };
 
+  const handleMoveGame = async (gameId: string, direction: 'up' | 'down') => {
+    const index = games.findIndex(g => g.id === gameId);
+    if (index === -1) return;
+    if (direction === 'up' && index === 0) return;
+    if (direction === 'down' && index === games.length - 1) return;
+
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    const newGames = [...games];
+    
+    // Troca de posição no array
+    [newGames[index], newGames[targetIndex]] = [newGames[targetIndex], newGames[index]];
+
+    // Atualiza o display_order baseado no novo índice
+    const updatedGames = newGames.map((g, i) => ({ ...g, display_order: i }));
+    setGames(updatedGames);
+
+    // Persiste no Supabase
+    try {
+      await Promise.all([
+        supabase.from('games').update({ display_order: index }).eq('id', newGames[index].id),
+        supabase.from('games').update({ display_order: targetIndex }).eq('id', newGames[targetIndex].id)
+      ]);
+    } catch (e) {
+      console.error("Erro ao salvar nova ordem:", e);
+      showToast("Erro ao reorganizar jogo (Verifique se a coluna display_order existe).", "error");
+    }
+  };
+
   const handleSaveGame = async (gameData: Omit<Game, 'id'>) => {
     try {
       if (editingGame) {
@@ -299,9 +352,11 @@ const App: React.FC = () => {
         if (error) throw error;
         if (data) setGames(games.map(g => g.id === editingGame.id ? data : g));
       } else {
-        const { data, error } = await supabase.from('games').insert([gameData]).select().single();
+        // Define o display_order para o final da lista
+        const nextOrder = games.length > 0 ? Math.max(...games.map(g => g.display_order || 0)) + 1 : 0;
+        const { data, error } = await supabase.from('games').insert([{ ...gameData, display_order: nextOrder }]).select().single();
         if (error) throw error;
-        if (data) setGames([data, ...games]);
+        if (data) setGames([...games, data]);
       }
       setShowAdminModal(false);
       showToast('Sucesso!');
@@ -760,11 +815,19 @@ const App: React.FC = () => {
                     </div>
                  </div>
 
+                 {/* NOVA SEÇÃO DE ORGANIZAÇÃO DE PRODUTOS */}
                  <div className="bg-[#070709] border border-white/5 p-10 rounded-[4rem] space-y-6">
-                    <h3 className="text-xl font-black uppercase italic text-white">PRODUTOS ATIVOS ({games.length})</h3>
-                    <div className="max-h-96 overflow-y-auto custom-scrollbar grid grid-cols-1 gap-4 pr-2">
-                       {games.map(game => (
+                    <div className="flex items-center justify-between">
+                       <h3 className="text-xl font-black uppercase italic text-white">VITRINE E ORDEM</h3>
+                       <p className="text-[9px] text-gray-500 font-bold uppercase tracking-widest">Organize seus produtos</p>
+                    </div>
+                    <div className="max-h-96 overflow-y-auto custom-scrollbar space-y-3 pr-2">
+                       {games.map((game, index) => (
                          <div key={game.id} className="flex items-center gap-4 bg-black/40 border border-white/5 p-4 rounded-3xl group">
+                            <div className="flex flex-col gap-1">
+                               <button onClick={() => handleMoveGame(game.id, 'up')} disabled={index === 0} className="p-1.5 bg-white/5 rounded-lg text-gray-500 hover:text-[var(--neon-green)] disabled:opacity-20 hover:disabled:text-gray-500 transition-colors"><ArrowUp className="w-3 h-3" /></button>
+                               <button onClick={() => handleMoveGame(game.id, 'down')} disabled={index === games.length - 1} className="p-1.5 bg-white/5 rounded-lg text-gray-500 hover:text-[var(--neon-green)] disabled:opacity-20 hover:disabled:text-gray-500 transition-colors"><ArrowDown className="w-3 h-3" /></button>
+                            </div>
                             <img src={game.image_url} className="w-12 h-16 rounded-xl object-cover transition-transform group-hover:scale-105" />
                             <div className="flex-grow">
                                <p className="text-[11px] text-white font-black uppercase italic line-clamp-1">{game.title}</p>

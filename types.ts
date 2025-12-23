@@ -7,6 +7,7 @@ export interface Game {
   image_url: string;
   is_featured: boolean;
   category: 'jogo' | 'gamepass' | 'prevenda';
+  display_order?: number;
   
   // Preços para Jogos
   original_price_parental?: number;
