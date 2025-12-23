@@ -53,30 +53,48 @@ const App: React.FC = () => {
   });
 
   const [siteSettings, setSiteSettings] = useState({
-    hero_title: 'A loja líder em venda de jogos!',
-    hero_description: 'A RD Digital se destaca como a referência no mercado de Xbox, oferecendo uma ampla variedade de produtos com entrega imediata e suporte 24h.',
-    promo_bar_text: '🔥 JOGOS XBOX COM ATÉ 90% DE DESCONTO - ENTREGA IMEDIATA 🔥',
-    hero_image: 'https://images.unsplash.com/photo-1621259182978-f09e5e2ca09a?q=80&w=2069&auto=format&fit=crop',
-    logo_url: '',
-    footer_description: 'A melhor loja de produtos digitais para Xbox com entrega imediata e suporte eficiente via WhatsApp.',
+    // Configurações Gerais
     primary_color: '#ccff00',
     bg_color: '#000000',
     text_color: '#ffffff',
+    logo_url: '',
+    
+    // Login
+    login_title: 'RD DIGITAL',
+    login_subtitle: 'Sua conta de jogos oficial',
+    login_btn_text: 'ACESSAR AGORA',
+    login_footer: 'RD Digital Games © 2024 • Todos os Direitos Reservados',
+    
+    // Hero & Home
+    hero_title: 'A loja líder em venda de jogos!',
+    hero_description: 'A RD Digital se destaca como a referência no mercado de Xbox, oferecendo uma ampla variedade de produtos com entrega imediata e suporte 24h.',
+    hero_image: 'https://images.unsplash.com/photo-1621259182978-f09e5e2ca09a?q=80&w=2069&auto=format&fit=crop',
+    
+    // Seções / Vitrines
+    gamepass_title: 'GAME PASS PREMIUM',
+    gamepass_subtitle: 'ASSINE E JOGUE CENTENAS DE TÍTULOS',
+    prevenda_title: 'PRÉ-VENDAS ÉPICAS',
+    prevenda_subtitle: 'GARANTA SEU LUGAR NO LANÇAMENTO',
+    catalog_title: 'CATÁLOGO COMPLETO',
+    
+    // Navegação e Botões
+    search_placeholder: 'Procurar jogo no catálogo...',
+    tab_games: 'JOGOS',
+    tab_gamepass: 'GAME PASS',
+    tab_preorder: 'PRÉ-VENDA',
+    
+    // Carrinho e Checkout
+    cart_title: 'Seu Carrinho',
+    cart_empty_text: 'Carrinho Vazio',
+    checkout_button_text: 'PAGAR AGORA',
+    
+    // Pagamentos
     pix_key: 'rodrigooportunidades20@gmail.com',
     pix_name: 'RODRIGO RD GAMES',
     whatsapp_number: '5511999999999',
     stripe_public_key: 'pk_test_51ShFjSFLtqLxkHWdRthCEvD7ZoLKkF2pTSuuaCsPEQM7tfHM3QSWw471b7mwCOXgQrj6wxLODmoOmCSntYOZxSNp00yO7Y8EvQ',
     enable_stripe: 'true',
     enable_pix: 'true',
-    gamepass_title: 'GAME PASS PREMIUM',
-    gamepass_subtitle: 'ASSINE E JOGUE CENTENAS DE TÍTULOS',
-    prevenda_title: 'PRÉ-VENDAS ÉPICAS',
-    prevenda_subtitle: 'GARANTA SEU LUGAR NO LANÇAMENTO',
-    catalog_title: 'CATÁLOGO COMPLETO',
-    cart_title: 'Seu Carrinho',
-    cart_empty_text: 'Carrinho Vazio',
-    pix_checkout_title: 'Pagamento PIX',
-    checkout_button_text: 'PAGAR AGORA'
   });
 
   const [games, setGames] = useState<Game[]>([]);
@@ -225,14 +243,11 @@ const App: React.FC = () => {
 
   const fetchInitialData = async () => {
     try {
-      // Tenta buscar ordenado por display_order (recurso novo)
       let { data: gamesData, error: gamesError } = await supabase
         .from('games')
         .select('*')
         .order('display_order', { ascending: true });
       
-      // Se houver erro (provavelmente a coluna display_order não existe ainda no Supabase),
-      // fazemos o fallback para a ordenação padrão por data de criação para que os produtos APAREÇAM.
       if (gamesError) {
         console.warn("Ordenação personalizada indisponível, usando fallback.", gamesError);
         const fallback = await supabase
@@ -245,7 +260,6 @@ const App: React.FC = () => {
       }
       
       if (!gamesError && gamesData) {
-        // Preenche o display_order na memória se vier nulo do banco
         const sanitizedGames = gamesData.map((g, idx) => ({
              ...g,
              display_order: g.display_order !== null && g.display_order !== undefined ? g.display_order : idx
@@ -326,14 +340,11 @@ const App: React.FC = () => {
     const targetIndex = direction === 'up' ? index - 1 : index + 1;
     const newGames = [...games];
     
-    // Troca de posição no array
     [newGames[index], newGames[targetIndex]] = [newGames[targetIndex], newGames[index]];
 
-    // Atualiza o display_order baseado no novo índice
     const updatedGames = newGames.map((g, i) => ({ ...g, display_order: i }));
     setGames(updatedGames);
 
-    // Persiste no Supabase
     try {
       await Promise.all([
         supabase.from('games').update({ display_order: index }).eq('id', newGames[index].id),
@@ -352,7 +363,6 @@ const App: React.FC = () => {
         if (error) throw error;
         if (data) setGames(games.map(g => g.id === editingGame.id ? data : g));
       } else {
-        // Define o display_order para o final da lista
         const nextOrder = games.length > 0 ? Math.max(...games.map(g => g.display_order || 0)) + 1 : 0;
         const { data, error } = await supabase.from('games').insert([{ ...gameData, display_order: nextOrder }]).select().single();
         if (error) throw error;
@@ -385,7 +395,6 @@ const App: React.FC = () => {
     finally { setAuthLoading(false); }
   };
 
-  // Filtragem de catálogo com termo de busca
   const filteredCatalog = useMemo(() => {
     return games
       .filter(g => g.category === activeCategory)
@@ -410,8 +419,8 @@ const App: React.FC = () => {
                   <Zap className="w-8 h-8 text-black fill-black" />
                </div>
              )}
-             <h1 className="text-3xl font-black italic uppercase tracking-tighter neon-text-glow text-white">RD DIGITAL</h1>
-             <p className="text-[9px] text-gray-500 font-black uppercase tracking-[0.4em] mt-1">Sua conta de jogos oficial</p>
+             <h1 className="text-3xl font-black italic uppercase tracking-tighter neon-text-glow text-white">{siteSettings.login_title}</h1>
+             <p className="text-[9px] text-gray-500 font-black uppercase tracking-[0.4em] mt-1">{siteSettings.login_subtitle}</p>
           </div>
           <div className="bg-white/[0.03] backdrop-blur-2xl border border-white/10 p-8 rounded-[2.5rem] shadow-2xl">
             {needsEmailConfirmation ? (
@@ -432,7 +441,7 @@ const App: React.FC = () => {
                   <input required type="password" value={password} onChange={e => setPassword(e.target.value)} className="w-full bg-black/40 border border-white/5 rounded-2xl py-4 px-6 text-white text-sm focus:border-[var(--neon-green)]/50 outline-none transition-all" placeholder="••••••••" />
                 </div>
                 <button type="submit" disabled={authLoading} className="w-full bg-[var(--neon-green)] text-black py-4 mt-2 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-[0_10px_30px_var(--neon-glow)] hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3">
-                  {authLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <>ACESSAR AGORA <LogIn className="w-4 h-4" /></>}
+                  {authLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <>{siteSettings.login_btn_text} <LogIn className="w-4 h-4" /></>}
                 </button>
                 <div className="pt-4 text-center border-t border-white/5 mt-6">
                   <button type="button" onClick={() => setIsSignUpMode(!isSignUpMode)} className="text-[9px] font-black uppercase text-gray-500 hover:text-white transition-colors tracking-widest">
@@ -442,7 +451,7 @@ const App: React.FC = () => {
               </form>
             )}
           </div>
-          <p className="text-center text-[8px] text-gray-600 font-bold uppercase tracking-[0.2em] mt-8">RD Digital Games © 2024 • Todos os Direitos Reservados</p>
+          <p className="text-center text-[8px] text-gray-600 font-bold uppercase tracking-[0.2em] mt-8">{siteSettings.login_footer}</p>
         </div>
       </div>
     );
@@ -466,7 +475,7 @@ const App: React.FC = () => {
           ) : (
             <Zap className="text-[var(--neon-green)] w-8 h-8 fill-[var(--neon-green)]" />
           )}
-          <span className="text-2xl font-black italic uppercase text-white tracking-tighter">RD DIGITAL</span>
+          <span className="text-2xl font-black italic uppercase text-white tracking-tighter">{siteSettings.login_title}</span>
         </div>
         <div className="flex items-center gap-4">
           <button onClick={() => setIsCartOpen(true)} className="relative p-4 bg-white/5 rounded-2xl text-white">
@@ -616,15 +625,15 @@ const App: React.FC = () => {
                  type="text" 
                  value={catalogSearchTerm}
                  onChange={e => setCatalogSearchTerm(e.target.value)}
-                 placeholder="Procurar jogo no catálogo..." 
+                 placeholder={siteSettings.search_placeholder}
                  className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-14 pr-6 text-white text-xs outline-none focus:border-[var(--neon-green)]/40 transition-all shadow-lg"
                />
             </div>
 
             <div className="flex gap-4">
-               <button onClick={() => setActiveCategory('jogo')} className={`px-8 py-4 rounded-2xl text-[10px] font-black uppercase italic tracking-widest transition-all ${activeCategory === 'jogo' ? 'bg-[var(--neon-green)] text-black shadow-xl' : 'bg-white/5 text-gray-500'}`}>JOGOS</button>
-               <button onClick={() => setActiveCategory('gamepass')} className={`px-8 py-4 rounded-2xl text-[10px] font-black uppercase italic tracking-widest transition-all ${activeCategory === 'gamepass' ? 'bg-green-600 text-white shadow-xl' : 'bg-white/5 text-gray-500'}`}>GAME PASS</button>
-               <button onClick={() => setActiveCategory('prevenda')} className={`px-8 py-4 rounded-2xl text-[10px] font-black uppercase italic tracking-widest transition-all ${activeCategory === 'prevenda' ? 'bg-orange-600 text-white shadow-xl' : 'bg-white/5 text-gray-500'}`}>PRÉ-VENDA</button>
+               <button onClick={() => setActiveCategory('jogo')} className={`px-8 py-4 rounded-2xl text-[10px] font-black uppercase italic tracking-widest transition-all ${activeCategory === 'jogo' ? 'bg-[var(--neon-green)] text-black shadow-xl' : 'bg-white/5 text-gray-500'}`}>{siteSettings.tab_games}</button>
+               <button onClick={() => setActiveCategory('gamepass')} className={`px-8 py-4 rounded-2xl text-[10px] font-black uppercase italic tracking-widest transition-all ${activeCategory === 'gamepass' ? 'bg-green-600 text-white shadow-xl' : 'bg-white/5 text-gray-500'}`}>{siteSettings.tab_gamepass}</button>
+               <button onClick={() => setActiveCategory('prevenda')} className={`px-8 py-4 rounded-2xl text-[10px] font-black uppercase italic tracking-widest transition-all ${activeCategory === 'prevenda' ? 'bg-orange-600 text-white shadow-xl' : 'bg-white/5 text-gray-500'}`}>{siteSettings.tab_preorder}</button>
             </div>
          </div>
          
@@ -645,7 +654,7 @@ const App: React.FC = () => {
          ) : (
            <div className="text-center py-40 space-y-4 opacity-20">
               <Box className="w-16 h-16 mx-auto text-gray-500" />
-              <p className="text-[10px] font-black uppercase tracking-widest">Nenhum jogo encontrado com este nome</p>
+              <p className="text-[10px] font-black uppercase tracking-widest">Nenhum jogo encontrado</p>
            </div>
          )}
       </div>
@@ -739,26 +748,116 @@ const App: React.FC = () => {
                    </div>
                 </div>
 
-                {/* DICIONÁRIO DE TEXTOS */}
+                {/* DICIONÁRIO DE TEXTOS EXPANDIDO */}
                 <div className="bg-[#070709] border border-white/5 p-10 rounded-[4rem] space-y-6">
                    <div className="flex items-center gap-3 text-blue-500 mb-2">
                       <Languages className="w-5 h-5" />
                       <h3 className="text-[12px] font-black uppercase italic">DICIONÁRIO DO SITE</h3>
                    </div>
-                   <div className="space-y-4">
-                      <div className="space-y-1">
-                        <label className="text-[9px] font-black text-gray-500 uppercase">Título Game Pass</label>
-                        <input type="text" value={siteSettings.gamepass_title} onChange={e => setSiteSettings({...siteSettings, gamepass_title: e.target.value})} className="w-full bg-black border border-white/10 rounded-2xl p-4 text-white text-xs" />
+                   
+                   <div className="space-y-6 max-h-[500px] overflow-y-auto custom-scrollbar pr-2">
+                      
+                      {/* GERAL */}
+                      <div className="space-y-4">
+                        <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest border-b border-white/10 pb-1">NAVEGAÇÃO E GERAL</p>
+                        <div className="space-y-1">
+                          <label className="text-[8px] font-black text-gray-600 uppercase">Placeholder Busca</label>
+                          <input type="text" value={siteSettings.search_placeholder} onChange={e => setSiteSettings({...siteSettings, search_placeholder: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                        </div>
+                        <div className="grid grid-cols-3 gap-2">
+                           <div className="space-y-1">
+                             <label className="text-[8px] font-black text-gray-600 uppercase">Aba Jogos</label>
+                             <input type="text" value={siteSettings.tab_games} onChange={e => setSiteSettings({...siteSettings, tab_games: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                           </div>
+                           <div className="space-y-1">
+                             <label className="text-[8px] font-black text-gray-600 uppercase">Aba GP</label>
+                             <input type="text" value={siteSettings.tab_gamepass} onChange={e => setSiteSettings({...siteSettings, tab_gamepass: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                           </div>
+                           <div className="space-y-1">
+                             <label className="text-[8px] font-black text-gray-600 uppercase">Aba Pre</label>
+                             <input type="text" value={siteSettings.tab_preorder} onChange={e => setSiteSettings({...siteSettings, tab_preorder: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                           </div>
+                        </div>
                       </div>
-                      <div className="space-y-1">
-                        <label className="text-[9px] font-black text-gray-500 uppercase">Título Pré-Venda</label>
-                        <input type="text" value={siteSettings.prevenda_title} onChange={e => setSiteSettings({...siteSettings, prevenda_title: e.target.value})} className="w-full bg-black border border-white/10 rounded-2xl p-4 text-white text-xs" />
+
+                      {/* HERO */}
+                      <div className="space-y-4">
+                        <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest border-b border-white/10 pb-1">HERO E HOME</p>
+                        <div className="space-y-1">
+                          <label className="text-[8px] font-black text-gray-600 uppercase">Título Principal</label>
+                          <input type="text" value={siteSettings.hero_title} onChange={e => setSiteSettings({...siteSettings, hero_title: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[8px] font-black text-gray-600 uppercase">Descrição Hero</label>
+                          <textarea rows={2} value={siteSettings.hero_description} onChange={e => setSiteSettings({...siteSettings, hero_description: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                        </div>
                       </div>
-                      <div className="space-y-1">
-                        <label className="text-[9px] font-black text-gray-500 uppercase">Título Carrinho</label>
-                        <input type="text" value={siteSettings.cart_title} onChange={e => setSiteSettings({...siteSettings, cart_title: e.target.value})} className="w-full bg-black border border-white/10 rounded-2xl p-4 text-white text-xs" />
+
+                      {/* VITRINES */}
+                      <div className="space-y-4">
+                        <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest border-b border-white/10 pb-1">SEÇÕES / VITRINES</p>
+                        <div className="space-y-1">
+                          <label className="text-[8px] font-black text-gray-600 uppercase">Título Game Pass</label>
+                          <input type="text" value={siteSettings.gamepass_title} onChange={e => setSiteSettings({...siteSettings, gamepass_title: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[8px] font-black text-gray-600 uppercase">Subtítulo Game Pass</label>
+                          <input type="text" value={siteSettings.gamepass_subtitle} onChange={e => setSiteSettings({...siteSettings, gamepass_subtitle: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[8px] font-black text-gray-600 uppercase">Título Pré-Venda</label>
+                          <input type="text" value={siteSettings.prevenda_title} onChange={e => setSiteSettings({...siteSettings, prevenda_title: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[8px] font-black text-gray-600 uppercase">Subtítulo Pré-Venda</label>
+                          <input type="text" value={siteSettings.prevenda_subtitle} onChange={e => setSiteSettings({...siteSettings, prevenda_subtitle: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[8px] font-black text-gray-600 uppercase">Título Catálogo</label>
+                          <input type="text" value={siteSettings.catalog_title} onChange={e => setSiteSettings({...siteSettings, catalog_title: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                        </div>
                       </div>
+
+                      {/* CARRINHO */}
+                      <div className="space-y-4">
+                        <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest border-b border-white/10 pb-1">CARRINHO E CHECKOUT</p>
+                        <div className="space-y-1">
+                          <label className="text-[8px] font-black text-gray-600 uppercase">Título Carrinho</label>
+                          <input type="text" value={siteSettings.cart_title} onChange={e => setSiteSettings({...siteSettings, cart_title: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[8px] font-black text-gray-600 uppercase">Texto Carrinho Vazio</label>
+                          <input type="text" value={siteSettings.cart_empty_text} onChange={e => setSiteSettings({...siteSettings, cart_empty_text: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[8px] font-black text-gray-600 uppercase">Botão Finalizar</label>
+                          <input type="text" value={siteSettings.checkout_button_text} onChange={e => setSiteSettings({...siteSettings, checkout_button_text: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                        </div>
+                      </div>
+
+                      {/* LOGIN & FOOTER */}
+                      <div className="space-y-4">
+                        <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest border-b border-white/10 pb-1">LOGIN E RODAPÉ</p>
+                        <div className="space-y-1">
+                          <label className="text-[8px] font-black text-gray-600 uppercase">Título Login</label>
+                          <input type="text" value={siteSettings.login_title} onChange={e => setSiteSettings({...siteSettings, login_title: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[8px] font-black text-gray-600 uppercase">Subtítulo Login</label>
+                          <input type="text" value={siteSettings.login_subtitle} onChange={e => setSiteSettings({...siteSettings, login_subtitle: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[8px] font-black text-gray-600 uppercase">Botão Login</label>
+                          <input type="text" value={siteSettings.login_btn_text} onChange={e => setSiteSettings({...siteSettings, login_btn_text: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[8px] font-black text-gray-600 uppercase">Rodapé (Copyright)</label>
+                          <textarea rows={2} value={siteSettings.login_footer} onChange={e => setSiteSettings({...siteSettings, login_footer: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                        </div>
+                      </div>
+
                    </div>
+
                    <button onClick={handleSaveSettings} disabled={authLoading} className="w-full bg-[var(--neon-green)] text-black py-6 rounded-3xl font-black flex items-center justify-center gap-3 uppercase text-[10px] shadow-xl hover:scale-[1.02] transition-all">
                       {authLoading ? <Loader2 className="animate-spin" /> : <Save />} SALVAR TODAS AS ALTERAÇÕES
                    </button>
