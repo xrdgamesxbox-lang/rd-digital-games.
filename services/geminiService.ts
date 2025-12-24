@@ -1,10 +1,4 @@
-
 import { GoogleGenAI, Type } from "@google/genai";
-
-// Shim para evitar crash se process não estiver definido no navegador
-if (typeof (window as any).process === 'undefined') {
-  (window as any).process = { env: { API_KEY: '' } };
-}
 
 export interface ExtractedGameData {
   title: string;

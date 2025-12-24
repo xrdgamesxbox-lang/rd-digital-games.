@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
   ShoppingCart, Star, Settings,
@@ -26,6 +25,7 @@ const App: React.FC = () => {
   const [gameToDelete, setGameToDelete] = useState<string | null>(null);
   const [orderToDelete, setOrderToDelete] = useState<string | null>(null);
   const [logoError, setLogoError] = useState(false);
+  const [showInfoModal, setShowInfoModal] = useState(false);
   
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -52,7 +52,7 @@ const App: React.FC = () => {
     recentSales: [] as any[]
   });
 
-  const [siteSettings, setSiteSettings] = useState({
+  const [siteSettings, setSiteSettings] = useState<any>({
     // Configurações Gerais
     primary_color: '#ccff00',
     bg_color: '#000000',
@@ -70,6 +70,14 @@ const App: React.FC = () => {
     hero_description: 'A RD Digital se destaca como a referência no mercado de Xbox, oferecendo uma ampla variedade de produtos com entrega imediata e suporte 24h.',
     hero_image: 'https://images.unsplash.com/photo-1621259182978-f09e5e2ca09a?q=80&w=2069&auto=format&fit=crop',
     
+    // Seção Como Funciona
+    how_it_works_title: 'Como Funciona?',
+    how_it_works_subtitle: 'Entenda tudo sobre a mídia digital e não tenha dúvidas!',
+    how_it_works_btn: 'Saiba mais',
+    how_it_works_image: 'https://images.unsplash.com/photo-1605901309584-818e25960b8f?q=80&w=2000&auto=format&fit=crop',
+    text_parental: 'A Conta Parental é uma licença compartilhada oficial. Você joga no seu próprio perfil pessoal, conquista troféus e salva seu progresso. O método de acesso é simples e enviamos um tutorial passo a passo.',
+    text_exclusive: 'A Conta Exclusiva é totalmente sua. Você recebe e-mail e senha, pode alterar os dados de segurança e compartilhar com um amigo se desejar (Configuração de Home Principal). É como comprar o jogo digitalmente na loja.',
+
     // Seções / Vitrines
     gamepass_title: 'GAME PASS PREMIUM',
     gamepass_subtitle: 'ASSINE E JOGUE CENTENAS DE TÍTULOS',
@@ -376,11 +384,15 @@ const App: React.FC = () => {
   };
 
   const handleDeleteGame = async (id: string) => {
-    const { error } = await supabase.from('games').delete().eq('id', id);
-    if (!error) {
+    try {
+      const { error } = await supabase.from('games').delete().eq('id', id);
+      if (error) throw error;
       setGames(games.filter(x => x.id !== id));
       setGameToDelete(null);
       showToast('Item removido!');
+    } catch (e: any) {
+      console.error("Erro ao deletar:", e);
+      showToast('Erro ao excluir. Verifique permissões.', 'error');
     }
   };
 
@@ -393,6 +405,11 @@ const App: React.FC = () => {
       showToast('Configurações e Pagamentos salvos!');
     } catch (error: any) { showToast(error.message, 'error'); }
     finally { setAuthLoading(false); }
+  };
+
+  // Helper para atualizar settings com segurança
+  const updateSetting = (key: string, value: string) => {
+    setSiteSettings((prev: any) => ({ ...prev, [key]: value }));
   };
 
   const filteredCatalog = useMemo(() => {
@@ -419,8 +436,8 @@ const App: React.FC = () => {
                   <Zap className="w-8 h-8 text-black fill-black" />
                </div>
              )}
-             <h1 className="text-3xl font-black italic uppercase tracking-tighter neon-text-glow text-white">{siteSettings.login_title}</h1>
-             <p className="text-[9px] text-gray-500 font-black uppercase tracking-[0.4em] mt-1">{siteSettings.login_subtitle}</p>
+             <h1 className="text-3xl font-black italic uppercase tracking-tighter neon-text-glow text-white">{siteSettings.login_title || 'RD DIGITAL'}</h1>
+             <p className="text-[9px] text-gray-500 font-black uppercase tracking-[0.4em] mt-1">{siteSettings.login_subtitle || 'Sua conta de jogos oficial'}</p>
           </div>
           <div className="bg-white/[0.03] backdrop-blur-2xl border border-white/10 p-8 rounded-[2.5rem] shadow-2xl">
             {needsEmailConfirmation ? (
@@ -441,7 +458,7 @@ const App: React.FC = () => {
                   <input required type="password" value={password} onChange={e => setPassword(e.target.value)} className="w-full bg-black/40 border border-white/5 rounded-2xl py-4 px-6 text-white text-sm focus:border-[var(--neon-green)]/50 outline-none transition-all" placeholder="••••••••" />
                 </div>
                 <button type="submit" disabled={authLoading} className="w-full bg-[var(--neon-green)] text-black py-4 mt-2 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-[0_10px_30px_var(--neon-glow)] hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3">
-                  {authLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <>{siteSettings.login_btn_text} <LogIn className="w-4 h-4" /></>}
+                  {authLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <>{siteSettings.login_btn_text || 'ACESSAR AGORA'} <LogIn className="w-4 h-4" /></>}
                 </button>
                 <div className="pt-4 text-center border-t border-white/5 mt-6">
                   <button type="button" onClick={() => setIsSignUpMode(!isSignUpMode)} className="text-[9px] font-black uppercase text-gray-500 hover:text-white transition-colors tracking-widest">
@@ -451,7 +468,7 @@ const App: React.FC = () => {
               </form>
             )}
           </div>
-          <p className="text-center text-[8px] text-gray-600 font-bold uppercase tracking-[0.2em] mt-8">{siteSettings.login_footer}</p>
+          <p className="text-center text-[8px] text-gray-600 font-bold uppercase tracking-[0.2em] mt-8">{siteSettings.login_footer || 'Direitos Reservados'}</p>
         </div>
       </div>
     );
@@ -571,6 +588,62 @@ const App: React.FC = () => {
          </div>
       </section>
 
+      {/* SEÇÃO COMO FUNCIONA */}
+      <section className="px-8 max-w-7xl mx-auto w-full mb-32">
+        <div className="bg-white/5 border border-white/5 rounded-[4rem] p-12 lg:p-20 flex flex-col lg:flex-row items-center gap-16 overflow-hidden relative">
+           <div className="absolute inset-0 bg-[var(--neon-green)]/5 opacity-50 pointer-events-none"></div>
+           <div className="flex-1 space-y-8 relative z-10 text-center lg:text-left">
+              <h2 className="text-5xl lg:text-7xl font-black text-[var(--neon-green)] uppercase italic tracking-tighter leading-[0.9]">{siteSettings.how_it_works_title}</h2>
+              <p className="text-xl text-gray-400 max-w-lg mx-auto lg:mx-0">{siteSettings.how_it_works_subtitle}</p>
+              <button 
+                onClick={() => setShowInfoModal(true)}
+                className="bg-[var(--neon-green)] text-black px-12 py-5 rounded-2xl font-black uppercase text-sm tracking-widest hover:scale-105 active:scale-95 transition-all shadow-[0_10px_40px_rgba(204,255,0,0.2)]"
+              >
+                {siteSettings.how_it_works_btn}
+              </button>
+           </div>
+           <div className="flex-1 relative z-10">
+              <img 
+                src={siteSettings.how_it_works_image} 
+                className="w-full max-w-md mx-auto rounded-3xl shadow-[0_20px_60px_rgba(0,0,0,0.5)] transform hover:rotate-2 transition-transform duration-700"
+                alt="Console"
+              />
+           </div>
+        </div>
+      </section>
+
+      {/* MODAL COMO FUNCIONA */}
+      {showInfoModal && (
+        <div className="fixed inset-0 z-[400] bg-black/95 backdrop-blur-md flex items-center justify-center p-6">
+           <div className="bg-[#070709] border border-white/10 w-full max-w-4xl rounded-[3.5rem] overflow-hidden animate-bounce-in flex flex-col max-h-[90vh]">
+              <div className="p-10 border-b border-white/5 flex items-center justify-between">
+                 <h3 className="text-3xl font-black uppercase italic text-white tracking-tighter">TIPOS DE CONTA</h3>
+                 <button onClick={() => setShowInfoModal(false)} className="bg-white/5 p-4 rounded-2xl text-white hover:bg-white/10 transition-colors"><X /></button>
+              </div>
+              <div className="p-10 overflow-y-auto custom-scrollbar grid grid-cols-1 md:grid-cols-2 gap-8">
+                 <div className="bg-white/5 p-8 rounded-[3rem] border border-white/5 space-y-6 hover:border-[var(--neon-green)]/30 transition-colors">
+                    <div className="w-16 h-16 bg-orange-600 rounded-3xl flex items-center justify-center shadow-xl">
+                       <Users className="w-8 h-8 text-white" />
+                    </div>
+                    <div>
+                       <h4 className="text-2xl font-black text-white uppercase italic mb-2">CONTA PARENTAL</h4>
+                       <p className="text-gray-400 text-sm leading-relaxed whitespace-pre-wrap">{siteSettings.text_parental}</p>
+                    </div>
+                 </div>
+                 <div className="bg-white/5 p-8 rounded-[3rem] border border-white/5 space-y-6 hover:border-blue-500/30 transition-colors">
+                    <div className="w-16 h-16 bg-blue-600 rounded-3xl flex items-center justify-center shadow-xl">
+                       <UserPlus className="w-8 h-8 text-white" />
+                    </div>
+                    <div>
+                       <h4 className="text-2xl font-black text-white uppercase italic mb-2">CONTA EXCLUSIVA</h4>
+                       <p className="text-gray-400 text-sm leading-relaxed whitespace-pre-wrap">{siteSettings.text_exclusive}</p>
+                    </div>
+                 </div>
+              </div>
+           </div>
+        </div>
+      )}
+
       {/* VITRINES */}
       {gamepassGames.length > 0 && (
         <section className="px-8 max-w-7xl mx-auto w-full py-20 bg-[var(--neon-green)]/5 rounded-[5rem] border border-[var(--neon-green)]/10 mb-20 relative overflow-hidden">
@@ -643,9 +716,9 @@ const App: React.FC = () => {
                <div key={game.id} className="relative group">
                  <GameCard game={game} onBuy={addToCart} />
                  {user.isAdmin && (
-                  <div className="absolute top-8 right-8 z-40 flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
-                    <button onClick={() => {setEditingGame(game); setShowAdminModal(true)}} className="p-4 bg-blue-600 rounded-2xl text-white"><Edit2 className="w-4 h-4"/></button>
-                    <button onClick={() => setGameToDelete(game.id)} className="p-4 bg-red-600 rounded-2xl text-white"><Trash2 className="w-4 h-4"/></button>
+                  <div className="absolute top-4 right-4 z-40 flex gap-2">
+                    <button onClick={() => {setEditingGame(game); setShowAdminModal(true)}} className="p-3 bg-blue-600 rounded-2xl text-white hover:scale-105 transition-transform"><Edit2 className="w-4 h-4"/></button>
+                    <button onClick={() => setGameToDelete(game.id)} className="p-3 bg-red-600 rounded-2xl text-white hover:scale-105 transition-transform"><Trash2 className="w-4 h-4"/></button>
                   </div>
                  )}
                </div>
@@ -702,15 +775,15 @@ const App: React.FC = () => {
                    <div className="space-y-4">
                       <div className="space-y-1">
                         <label className="text-[9px] font-black text-gray-500 uppercase">Logo URL (PNG Transparente)</label>
-                        <input type="text" value={siteSettings.logo_url} onChange={e => setSiteSettings({...siteSettings, logo_url: e.target.value})} className="w-full bg-black border border-white/10 rounded-2xl p-4 text-white text-xs" placeholder="Link da imagem .png" />
+                        <input type="text" value={siteSettings.logo_url || ''} onChange={e => updateSetting('logo_url', e.target.value)} className="w-full bg-black border border-white/10 rounded-2xl p-4 text-white text-xs" placeholder="Link da imagem .png" />
                       </div>
                       <div className="space-y-1">
                         <label className="text-[9px] font-black text-gray-500 uppercase">Cor do Neon</label>
-                        <input type="color" value={siteSettings.primary_color} onChange={e => setSiteSettings({...siteSettings, primary_color: e.target.value})} className="w-full h-12 bg-black border border-white/10 rounded-2xl p-1" />
+                        <input type="color" value={siteSettings.primary_color || '#ccff00'} onChange={e => updateSetting('primary_color', e.target.value)} className="w-full h-12 bg-black border border-white/10 rounded-2xl p-1" />
                       </div>
                       <div className="space-y-1">
                         <label className="text-[9px] font-black text-gray-500 uppercase">Imagem Destaque Hero (URL)</label>
-                        <input type="text" value={siteSettings.hero_image} onChange={e => setSiteSettings({...siteSettings, hero_image: e.target.value})} className="w-full bg-black border border-white/10 rounded-2xl p-4 text-white text-xs" />
+                        <input type="text" value={siteSettings.hero_image || ''} onChange={e => updateSetting('hero_image', e.target.value)} className="w-full bg-black border border-white/10 rounded-2xl p-4 text-white text-xs" />
                       </div>
                    </div>
                 </div>
@@ -726,10 +799,10 @@ const App: React.FC = () => {
                         <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Opção PIX Manual</p>
                         <div className="space-y-1">
                           <label className="text-[8px] font-black text-gray-600 uppercase">Chave PIX</label>
-                          <input type="text" value={siteSettings.pix_key} onChange={e => setSiteSettings({...siteSettings, pix_key: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                          <input type="text" value={siteSettings.pix_key || ''} onChange={e => updateSetting('pix_key', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
                         </div>
                         <div className="flex items-center gap-2">
-                           <input type="checkbox" checked={siteSettings.enable_pix === 'true'} onChange={e => setSiteSettings({...siteSettings, enable_pix: String(e.target.checked)})} className="w-4 h-4 accent-[var(--neon-green)]" />
+                           <input type="checkbox" checked={siteSettings.enable_pix === 'true'} onChange={e => updateSetting('enable_pix', String(e.target.checked))} className="w-4 h-4 accent-[var(--neon-green)]" />
                            <label className="text-[9px] font-black text-gray-500">HABILITAR PIX</label>
                         </div>
                       </div>
@@ -738,10 +811,10 @@ const App: React.FC = () => {
                         <p className="text-[9px] font-black text-blue-400 uppercase tracking-widest">Opção Stripe (Cartão)</p>
                         <div className="space-y-1">
                           <label className="text-[8px] font-black text-gray-600 uppercase">Stripe Public Key</label>
-                          <input type="text" value={siteSettings.stripe_public_key} onChange={e => setSiteSettings({...siteSettings, stripe_public_key: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" placeholder="pk_live_..." />
+                          <input type="text" value={siteSettings.stripe_public_key || ''} onChange={e => updateSetting('stripe_public_key', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" placeholder="pk_live_..." />
                         </div>
                         <div className="flex items-center gap-2">
-                           <input type="checkbox" checked={siteSettings.enable_stripe === 'true'} onChange={e => setSiteSettings({...siteSettings, enable_stripe: String(e.target.checked)})} className="w-4 h-4 accent-blue-500" />
+                           <input type="checkbox" checked={siteSettings.enable_stripe === 'true'} onChange={e => updateSetting('enable_stripe', String(e.target.checked))} className="w-4 h-4 accent-blue-500" />
                            <label className="text-[9px] font-black text-gray-500">HABILITAR STRIPE</label>
                         </div>
                       </div>
@@ -757,25 +830,54 @@ const App: React.FC = () => {
                    
                    <div className="space-y-6 max-h-[500px] overflow-y-auto custom-scrollbar pr-2">
                       
+                      {/* COMO FUNCIONA */}
+                      <div className="space-y-4">
+                        <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest border-b border-white/10 pb-1">COMO FUNCIONA & TIPOS DE CONTA</p>
+                        <div className="space-y-1">
+                          <label className="text-[8px] font-black text-gray-600 uppercase">Título Seção</label>
+                          <input type="text" value={siteSettings.how_it_works_title || ''} onChange={e => updateSetting('how_it_works_title', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[8px] font-black text-gray-600 uppercase">Subtítulo Seção</label>
+                          <input type="text" value={siteSettings.how_it_works_subtitle || ''} onChange={e => updateSetting('how_it_works_subtitle', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[8px] font-black text-gray-600 uppercase">Texto Botão</label>
+                          <input type="text" value={siteSettings.how_it_works_btn || ''} onChange={e => updateSetting('how_it_works_btn', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[8px] font-black text-gray-600 uppercase">URL Imagem Console</label>
+                          <input type="text" value={siteSettings.how_it_works_image || ''} onChange={e => updateSetting('how_it_works_image', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[8px] font-black text-orange-500 uppercase">Texto Explicação Parental</label>
+                          <textarea rows={4} value={siteSettings.text_parental || ''} onChange={e => updateSetting('text_parental', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[8px] font-black text-blue-500 uppercase">Texto Explicação Exclusiva</label>
+                          <textarea rows={4} value={siteSettings.text_exclusive || ''} onChange={e => updateSetting('text_exclusive', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                        </div>
+                      </div>
+
                       {/* GERAL */}
                       <div className="space-y-4">
                         <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest border-b border-white/10 pb-1">NAVEGAÇÃO E GERAL</p>
                         <div className="space-y-1">
                           <label className="text-[8px] font-black text-gray-600 uppercase">Placeholder Busca</label>
-                          <input type="text" value={siteSettings.search_placeholder} onChange={e => setSiteSettings({...siteSettings, search_placeholder: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                          <input type="text" value={siteSettings.search_placeholder || ''} onChange={e => updateSetting('search_placeholder', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
                         </div>
                         <div className="grid grid-cols-3 gap-2">
                            <div className="space-y-1">
                              <label className="text-[8px] font-black text-gray-600 uppercase">Aba Jogos</label>
-                             <input type="text" value={siteSettings.tab_games} onChange={e => setSiteSettings({...siteSettings, tab_games: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                             <input type="text" value={siteSettings.tab_games || ''} onChange={e => updateSetting('tab_games', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
                            </div>
                            <div className="space-y-1">
                              <label className="text-[8px] font-black text-gray-600 uppercase">Aba GP</label>
-                             <input type="text" value={siteSettings.tab_gamepass} onChange={e => setSiteSettings({...siteSettings, tab_gamepass: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                             <input type="text" value={siteSettings.tab_gamepass || ''} onChange={e => updateSetting('tab_gamepass', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
                            </div>
                            <div className="space-y-1">
                              <label className="text-[8px] font-black text-gray-600 uppercase">Aba Pre</label>
-                             <input type="text" value={siteSettings.tab_preorder} onChange={e => setSiteSettings({...siteSettings, tab_preorder: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                             <input type="text" value={siteSettings.tab_preorder || ''} onChange={e => updateSetting('tab_preorder', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
                            </div>
                         </div>
                       </div>
@@ -785,11 +887,11 @@ const App: React.FC = () => {
                         <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest border-b border-white/10 pb-1">HERO E HOME</p>
                         <div className="space-y-1">
                           <label className="text-[8px] font-black text-gray-600 uppercase">Título Principal</label>
-                          <input type="text" value={siteSettings.hero_title} onChange={e => setSiteSettings({...siteSettings, hero_title: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                          <input type="text" value={siteSettings.hero_title || ''} onChange={e => updateSetting('hero_title', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
                         </div>
                         <div className="space-y-1">
                           <label className="text-[8px] font-black text-gray-600 uppercase">Descrição Hero</label>
-                          <textarea rows={2} value={siteSettings.hero_description} onChange={e => setSiteSettings({...siteSettings, hero_description: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                          <textarea rows={2} value={siteSettings.hero_description || ''} onChange={e => updateSetting('hero_description', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
                         </div>
                       </div>
 
@@ -798,23 +900,23 @@ const App: React.FC = () => {
                         <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest border-b border-white/10 pb-1">SEÇÕES / VITRINES</p>
                         <div className="space-y-1">
                           <label className="text-[8px] font-black text-gray-600 uppercase">Título Game Pass</label>
-                          <input type="text" value={siteSettings.gamepass_title} onChange={e => setSiteSettings({...siteSettings, gamepass_title: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                          <input type="text" value={siteSettings.gamepass_title || ''} onChange={e => updateSetting('gamepass_title', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
                         </div>
                         <div className="space-y-1">
                           <label className="text-[8px] font-black text-gray-600 uppercase">Subtítulo Game Pass</label>
-                          <input type="text" value={siteSettings.gamepass_subtitle} onChange={e => setSiteSettings({...siteSettings, gamepass_subtitle: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                          <input type="text" value={siteSettings.gamepass_subtitle || ''} onChange={e => updateSetting('gamepass_subtitle', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
                         </div>
                         <div className="space-y-1">
                           <label className="text-[8px] font-black text-gray-600 uppercase">Título Pré-Venda</label>
-                          <input type="text" value={siteSettings.prevenda_title} onChange={e => setSiteSettings({...siteSettings, prevenda_title: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                          <input type="text" value={siteSettings.prevenda_title || ''} onChange={e => updateSetting('prevenda_title', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
                         </div>
                         <div className="space-y-1">
                           <label className="text-[8px] font-black text-gray-600 uppercase">Subtítulo Pré-Venda</label>
-                          <input type="text" value={siteSettings.prevenda_subtitle} onChange={e => setSiteSettings({...siteSettings, prevenda_subtitle: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                          <input type="text" value={siteSettings.prevenda_subtitle || ''} onChange={e => updateSetting('prevenda_subtitle', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
                         </div>
                         <div className="space-y-1">
                           <label className="text-[8px] font-black text-gray-600 uppercase">Título Catálogo</label>
-                          <input type="text" value={siteSettings.catalog_title} onChange={e => setSiteSettings({...siteSettings, catalog_title: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                          <input type="text" value={siteSettings.catalog_title || ''} onChange={e => updateSetting('catalog_title', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
                         </div>
                       </div>
 
@@ -823,15 +925,15 @@ const App: React.FC = () => {
                         <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest border-b border-white/10 pb-1">CARRINHO E CHECKOUT</p>
                         <div className="space-y-1">
                           <label className="text-[8px] font-black text-gray-600 uppercase">Título Carrinho</label>
-                          <input type="text" value={siteSettings.cart_title} onChange={e => setSiteSettings({...siteSettings, cart_title: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                          <input type="text" value={siteSettings.cart_title || ''} onChange={e => updateSetting('cart_title', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
                         </div>
                         <div className="space-y-1">
                           <label className="text-[8px] font-black text-gray-600 uppercase">Texto Carrinho Vazio</label>
-                          <input type="text" value={siteSettings.cart_empty_text} onChange={e => setSiteSettings({...siteSettings, cart_empty_text: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                          <input type="text" value={siteSettings.cart_empty_text || ''} onChange={e => updateSetting('cart_empty_text', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
                         </div>
                         <div className="space-y-1">
                           <label className="text-[8px] font-black text-gray-600 uppercase">Botão Finalizar</label>
-                          <input type="text" value={siteSettings.checkout_button_text} onChange={e => setSiteSettings({...siteSettings, checkout_button_text: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                          <input type="text" value={siteSettings.checkout_button_text || ''} onChange={e => updateSetting('checkout_button_text', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
                         </div>
                       </div>
 
@@ -840,19 +942,19 @@ const App: React.FC = () => {
                         <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest border-b border-white/10 pb-1">LOGIN E RODAPÉ</p>
                         <div className="space-y-1">
                           <label className="text-[8px] font-black text-gray-600 uppercase">Título Login</label>
-                          <input type="text" value={siteSettings.login_title} onChange={e => setSiteSettings({...siteSettings, login_title: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                          <input type="text" value={siteSettings.login_title || ''} onChange={e => updateSetting('login_title', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
                         </div>
                         <div className="space-y-1">
                           <label className="text-[8px] font-black text-gray-600 uppercase">Subtítulo Login</label>
-                          <input type="text" value={siteSettings.login_subtitle} onChange={e => setSiteSettings({...siteSettings, login_subtitle: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                          <input type="text" value={siteSettings.login_subtitle || ''} onChange={e => updateSetting('login_subtitle', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
                         </div>
                         <div className="space-y-1">
                           <label className="text-[8px] font-black text-gray-600 uppercase">Botão Login</label>
-                          <input type="text" value={siteSettings.login_btn_text} onChange={e => setSiteSettings({...siteSettings, login_btn_text: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                          <input type="text" value={siteSettings.login_btn_text || ''} onChange={e => updateSetting('login_btn_text', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
                         </div>
                         <div className="space-y-1">
                           <label className="text-[8px] font-black text-gray-600 uppercase">Rodapé (Copyright)</label>
-                          <textarea rows={2} value={siteSettings.login_footer} onChange={e => setSiteSettings({...siteSettings, login_footer: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                          <textarea rows={2} value={siteSettings.login_footer || ''} onChange={e => updateSetting('login_footer', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
                         </div>
                       </div>
 
