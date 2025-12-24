@@ -2,9 +2,9 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { 
   ShoppingCart, Star, Settings,
   LogOut, Edit2, Trash2, Plus, X, Loader2, Lock, Mail, UserPlus, LogIn,
-  Instagram, Facebook, AlertTriangle, CheckCircle, Zap, Palette, Image as ImageIcon, Gamepad2, Layers, Check, Wifi, WifiOff, Terminal, Copy, HelpCircle, Rocket, ShieldCheck, RefreshCcw, ExternalLink, Activity, Globe, Search, Info, Download, Box, Monitor, AlertOctagon, Wallet, MessageCircle, Save, TrendingUp, Users, ShoppingBag, Eye, Clock, Type, Send, Languages, Phone, CreditCard, Calendar, Tag, ChevronRight, Link as LinkIcon, ArrowUp, ArrowDown
+  Instagram, Facebook, AlertTriangle, CheckCircle, Zap, Palette, Image as ImageIcon, Gamepad2, Layers, Check, Wifi, WifiOff, Terminal, Copy, HelpCircle, Rocket, ShieldCheck, RefreshCcw, ExternalLink, Activity, Globe, Search, Info, Download, Box, Monitor, AlertOctagon, Wallet, MessageCircle, Save, TrendingUp, Users, ShoppingBag, Eye, Clock, Type, Send, Languages, Phone, CreditCard, Calendar, Tag, ChevronRight, Link as LinkIcon, ArrowUp, ArrowDown, UserCheck, Key
 } from 'lucide-react';
-import { Game, User, CartItem } from './types.ts';
+import { Game, User, CartItem, License } from './types.ts';
 import GameCard from './components/GameCard.tsx';
 import AdminModal from './components/AdminModal.tsx';
 import CartDrawer from './components/CartDrawer.tsx';
@@ -16,6 +16,7 @@ const ADMIN_EMAIL = 'xrdgamesxbox@gmail.com';
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [isAdminPanelOpen, setIsAdminPanelOpen] = useState(false);
+  const [activeAdminTab, setActiveAdminTab] = useState<'dashboard' | 'products' | 'licenses'>('dashboard');
   const [isSignUpMode, setIsSignUpMode] = useState(false);
   const [needsEmailConfirmation, setNeedsEmailConfirmation] = useState(false);
   const [editingGame, setEditingGame] = useState<Game | null>(null);
@@ -26,6 +27,12 @@ const App: React.FC = () => {
   const [orderToDelete, setOrderToDelete] = useState<string | null>(null);
   const [logoError, setLogoError] = useState(false);
   const [showInfoModal, setShowInfoModal] = useState(false);
+  
+  // Estados para Licenças
+  const [licenses, setLicenses] = useState<License[]>([]);
+  const [editingLicense, setEditingLicense] = useState<License | null>(null);
+  const [showLicenseModal, setShowLicenseModal] = useState(false);
+  const [licenseToDelete, setLicenseToDelete] = useState<string | null>(null);
   
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -192,6 +199,7 @@ const App: React.FC = () => {
         .from('cart_activity')
         .select('*', { count: 'exact', head: true })
         .eq('is_completed', false);
+      const { data: licensesData } = await supabase.from('customer_licenses').select('*').order('created_at', { ascending: false });
 
       const totalRevenue = salesData?.reduce((acc, sale) => acc + (sale.status === 'aprovado' ? sale.total_amount : 0), 0) || 0;
 
@@ -202,6 +210,9 @@ const App: React.FC = () => {
         abandonedCarts: abandonedCount || 0,
         recentSales: salesData || []
       });
+      
+      if (licensesData) setLicenses(licensesData as unknown as License[]);
+
     } catch (e) { console.error("Error fetching stats", e); }
   };
 
@@ -339,6 +350,64 @@ const App: React.FC = () => {
     }
   };
 
+  // Funções de Licença
+  const handleSaveLicense = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingLicense) return;
+
+    try {
+      const { error } = await supabase.from('customer_licenses').upsert(editingLicense);
+      if (error) throw error;
+      showToast("Licença salva/atualizada!");
+      setShowLicenseModal(false);
+      fetchStats();
+    } catch (e: any) {
+      showToast("Erro ao salvar licença: " + e.message, 'error');
+    }
+  };
+
+  const handleDeleteLicense = async (id: string) => {
+    try {
+      const { error } = await supabase.from('customer_licenses').delete().eq('id', id);
+      if (error) throw error;
+      setLicenses(licenses.filter(l => l.id !== id));
+      setLicenseToDelete(null);
+      showToast('Licença removida!');
+    } catch (e: any) {
+      console.error("Erro ao deletar licença:", e);
+      showToast('Erro ao excluir licença.', 'error');
+    }
+  };
+
+  const createNewLicense = () => {
+    setEditingLicense({
+      id: undefined as any,
+      created_at: new Date().toISOString(),
+      customer_name: '',
+      customer_email: '',
+      customer_phone: '',
+      game_title: '',
+      product_category: 'jogo',
+      account_type: 'parental',
+      assigned_email: '',
+      assigned_password: '',
+      is_gamepass: false,
+      subscription_months: 1,
+      start_date: new Date().toISOString().split('T')[0],
+      end_date: '',
+      status: 'ativo'
+    });
+    setShowLicenseModal(true);
+  };
+
+  const calculateDaysRemaining = (endDate?: string) => {
+    if (!endDate) return null;
+    const end = new Date(endDate);
+    const now = new Date();
+    const diffTime = end.getTime() - now.getTime();
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+  };
+
   const handleMoveGame = async (gameId: string, direction: 'up' | 'down') => {
     const index = games.findIndex(g => g.id === gameId);
     if (index === -1) return;
@@ -347,9 +416,7 @@ const App: React.FC = () => {
 
     const targetIndex = direction === 'up' ? index - 1 : index + 1;
     const newGames = [...games];
-    
     [newGames[index], newGames[targetIndex]] = [newGames[targetIndex], newGames[index]];
-
     const updatedGames = newGames.map((g, i) => ({ ...g, display_order: i }));
     setGames(updatedGames);
 
@@ -407,7 +474,6 @@ const App: React.FC = () => {
     finally { setAuthLoading(false); }
   };
 
-  // Helper para atualizar settings com segurança
   const updateSetting = (key: string, value: string) => {
     setSiteSettings((prev: any) => ({ ...prev, [key]: value }));
   };
@@ -545,7 +611,6 @@ const App: React.FC = () => {
                </button>
             </div>
 
-            {/* Resultado da Verificação */}
             {priceCheckResult && (
                <div className="animate-bounce-in pt-6">
                   {priceCheckResult.found ? (
@@ -691,7 +756,6 @@ const App: React.FC = () => {
          <div className="flex flex-col md:flex-row items-center justify-between border-b border-white/5 pb-10 mb-16 gap-8">
             <h2 className="text-4xl font-black italic uppercase text-white tracking-tighter">{siteSettings.catalog_title}</h2>
             
-            {/* SISTEMA DE BUSCA NO CATÁLOGO */}
             <div className="relative w-full md:w-96 group">
                <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 group-focus-within:text-[var(--neon-green)] transition-colors" />
                <input 
@@ -744,285 +808,275 @@ const App: React.FC = () => {
                 <button onClick={() => setIsAdminPanelOpen(false)} className="bg-white/5 p-4 rounded-3xl"><X className="w-8 h-8 text-white"/></button>
               </div>
 
-              {/* DASHBOARD RÁPIDO */}
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
-                 <div className="bg-[#070709] border border-white/5 p-8 rounded-[3rem]">
-                    <p className="text-[10px] font-black text-gray-500 uppercase">Faturamento</p>
-                    <h4 className="text-3xl font-black text-white italic mt-2">R$ {stats.totalRevenue.toFixed(2)}</h4>
-                 </div>
-                 <div className="bg-[#070709] border border-white/5 p-8 rounded-[3rem]">
-                    <p className="text-[10px] font-black text-gray-500 uppercase">Visitantes</p>
-                    <h4 className="text-3xl font-black text-white italic mt-2">{stats.totalVisits}</h4>
-                 </div>
-                 <div className="bg-[#070709] border border-white/5 p-8 rounded-[3rem]">
-                    <p className="text-[10px] font-black text-gray-500 uppercase">Vendas</p>
-                    <h4 className="text-3xl font-black text-white italic mt-2">{stats.totalSales}</h4>
-                 </div>
-                 <button onClick={() => {setEditingGame(null); setShowAdminModal(true)}} className="bg-[var(--neon-green)] p-8 rounded-[3rem] text-black font-black uppercase text-xs flex items-center justify-center gap-3">
-                   <Plus /> NOVO PRODUTO
-                 </button>
+              {/* MENU DE NAVEGAÇÃO DO ADM */}
+              <div className="flex gap-4">
+                 <button onClick={() => setActiveAdminTab('dashboard')} className={`px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${activeAdminTab === 'dashboard' ? 'bg-[var(--neon-green)] text-black' : 'bg-white/5 text-gray-500'}`}>DASHBOARD</button>
+                 <button onClick={() => setActiveAdminTab('products')} className={`px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${activeAdminTab === 'products' ? 'bg-[var(--neon-green)] text-black' : 'bg-white/5 text-gray-500'}`}>PRODUTOS</button>
+                 <button onClick={() => setActiveAdminTab('licenses')} className={`px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${activeAdminTab === 'licenses' ? 'bg-[var(--neon-green)] text-black' : 'bg-white/5 text-gray-500'}`}>ENTREGAS & GAME PASS</button>
               </div>
 
-              {/* EDITOR DE CONFIGURAÇÕES E DICIONÁRIO */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                
-                {/* IDENTIDADE E VISUAL */}
-                <div className="bg-[#070709] border border-white/5 p-10 rounded-[4rem] space-y-6">
-                   <div className="flex items-center gap-3 text-[var(--neon-green)] mb-2">
-                      <Palette className="w-5 h-5" />
-                      <h3 className="text-[12px] font-black uppercase italic">IDENTIDADE VISUAL</h3>
-                   </div>
-                   <div className="space-y-4">
-                      <div className="space-y-1">
-                        <label className="text-[9px] font-black text-gray-500 uppercase">Logo URL (PNG Transparente)</label>
-                        <input type="text" value={siteSettings.logo_url || ''} onChange={e => updateSetting('logo_url', e.target.value)} className="w-full bg-black border border-white/10 rounded-2xl p-4 text-white text-xs" placeholder="Link da imagem .png" />
-                      </div>
-                      <div className="space-y-1">
-                        <label className="text-[9px] font-black text-gray-500 uppercase">Cor do Neon</label>
-                        <input type="color" value={siteSettings.primary_color || '#ccff00'} onChange={e => updateSetting('primary_color', e.target.value)} className="w-full h-12 bg-black border border-white/10 rounded-2xl p-1" />
-                      </div>
-                      <div className="space-y-1">
-                        <label className="text-[9px] font-black text-gray-500 uppercase">Imagem Destaque Hero (URL)</label>
-                        <input type="text" value={siteSettings.hero_image || ''} onChange={e => updateSetting('hero_image', e.target.value)} className="w-full bg-black border border-white/10 rounded-2xl p-4 text-white text-xs" />
-                      </div>
-                   </div>
-                </div>
+              {activeAdminTab === 'dashboard' && (
+                <div className="space-y-12 animate-bounce-in">
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
+                     <div className="bg-[#070709] border border-white/5 p-8 rounded-[3rem]">
+                        <p className="text-[10px] font-black text-gray-500 uppercase">Faturamento</p>
+                        <h4 className="text-3xl font-black text-white italic mt-2">R$ {stats.totalRevenue.toFixed(2)}</h4>
+                     </div>
+                     <div className="bg-[#070709] border border-white/5 p-8 rounded-[3rem]">
+                        <p className="text-[10px] font-black text-gray-500 uppercase">Visitantes</p>
+                        <h4 className="text-3xl font-black text-white italic mt-2">{stats.totalVisits}</h4>
+                     </div>
+                     <div className="bg-[#070709] border border-white/5 p-8 rounded-[3rem]">
+                        <p className="text-[10px] font-black text-gray-500 uppercase">Vendas</p>
+                        <h4 className="text-3xl font-black text-white italic mt-2">{stats.totalSales}</h4>
+                     </div>
+                     <button onClick={() => {setEditingGame(null); setShowAdminModal(true)}} className="bg-[var(--neon-green)] p-8 rounded-[3rem] text-black font-black uppercase text-xs flex items-center justify-center gap-3">
+                       <Plus /> NOVO PRODUTO
+                     </button>
+                  </div>
 
-                {/* PAGAMENTO E GATEWAYS */}
-                <div className="bg-[#070709] border border-[var(--neon-green)]/20 p-10 rounded-[4rem] space-y-6">
-                   <div className="flex items-center gap-3 text-orange-500 mb-2">
-                      <CreditCard className="w-5 h-5" />
-                      <h3 className="text-[12px] font-black uppercase italic">GATEWAYS DE PAGAMENTO</h3>
-                   </div>
-                   <div className="space-y-4">
-                      <div className="bg-black/40 p-4 rounded-2xl border border-white/5 space-y-4">
-                        <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Opção PIX Manual</p>
-                        <div className="space-y-1">
-                          <label className="text-[8px] font-black text-gray-600 uppercase">Chave PIX</label>
-                          <input type="text" value={siteSettings.pix_key || ''} onChange={e => updateSetting('pix_key', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
-                        </div>
-                        <div className="flex items-center gap-2">
-                           <input type="checkbox" checked={siteSettings.enable_pix === 'true'} onChange={e => updateSetting('enable_pix', String(e.target.checked))} className="w-4 h-4 accent-[var(--neon-green)]" />
-                           <label className="text-[9px] font-black text-gray-500">HABILITAR PIX</label>
-                        </div>
-                      </div>
-
-                      <div className="bg-blue-600/5 p-4 rounded-2xl border border-blue-500/20 space-y-4">
-                        <p className="text-[9px] font-black text-blue-400 uppercase tracking-widest">Opção Stripe (Cartão)</p>
-                        <div className="space-y-1">
-                          <label className="text-[8px] font-black text-gray-600 uppercase">Stripe Public Key</label>
-                          <input type="text" value={siteSettings.stripe_public_key || ''} onChange={e => updateSetting('stripe_public_key', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" placeholder="pk_live_..." />
-                        </div>
-                        <div className="flex items-center gap-2">
-                           <input type="checkbox" checked={siteSettings.enable_stripe === 'true'} onChange={e => updateSetting('enable_stripe', String(e.target.checked))} className="w-4 h-4 accent-blue-500" />
-                           <label className="text-[9px] font-black text-gray-500">HABILITAR STRIPE</label>
-                        </div>
-                      </div>
-                   </div>
-                </div>
-
-                {/* DICIONÁRIO DE TEXTOS EXPANDIDO */}
-                <div className="bg-[#070709] border border-white/5 p-10 rounded-[4rem] space-y-6">
-                   <div className="flex items-center gap-3 text-blue-500 mb-2">
-                      <Languages className="w-5 h-5" />
-                      <h3 className="text-[12px] font-black uppercase italic">DICIONÁRIO DO SITE</h3>
-                   </div>
-                   
-                   <div className="space-y-6 max-h-[500px] overflow-y-auto custom-scrollbar pr-2">
-                      
-                      {/* COMO FUNCIONA */}
-                      <div className="space-y-4">
-                        <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest border-b border-white/10 pb-1">COMO FUNCIONA & TIPOS DE CONTA</p>
-                        <div className="space-y-1">
-                          <label className="text-[8px] font-black text-gray-600 uppercase">Título Seção</label>
-                          <input type="text" value={siteSettings.how_it_works_title || ''} onChange={e => updateSetting('how_it_works_title', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
-                        </div>
-                        <div className="space-y-1">
-                          <label className="text-[8px] font-black text-gray-600 uppercase">Subtítulo Seção</label>
-                          <input type="text" value={siteSettings.how_it_works_subtitle || ''} onChange={e => updateSetting('how_it_works_subtitle', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
-                        </div>
-                        <div className="space-y-1">
-                          <label className="text-[8px] font-black text-gray-600 uppercase">Texto Botão</label>
-                          <input type="text" value={siteSettings.how_it_works_btn || ''} onChange={e => updateSetting('how_it_works_btn', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
-                        </div>
-                        <div className="space-y-1">
-                          <label className="text-[8px] font-black text-gray-600 uppercase">URL Imagem Console</label>
-                          <input type="text" value={siteSettings.how_it_works_image || ''} onChange={e => updateSetting('how_it_works_image', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
-                        </div>
-                        <div className="space-y-1">
-                          <label className="text-[8px] font-black text-orange-500 uppercase">Texto Explicação Parental</label>
-                          <textarea rows={4} value={siteSettings.text_parental || ''} onChange={e => updateSetting('text_parental', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
-                        </div>
-                        <div className="space-y-1">
-                          <label className="text-[8px] font-black text-blue-500 uppercase">Texto Explicação Exclusiva</label>
-                          <textarea rows={4} value={siteSettings.text_exclusive || ''} onChange={e => updateSetting('text_exclusive', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
-                        </div>
-                      </div>
-
-                      {/* GERAL */}
-                      <div className="space-y-4">
-                        <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest border-b border-white/10 pb-1">NAVEGAÇÃO E GERAL</p>
-                        <div className="space-y-1">
-                          <label className="text-[8px] font-black text-gray-600 uppercase">Placeholder Busca</label>
-                          <input type="text" value={siteSettings.search_placeholder || ''} onChange={e => updateSetting('search_placeholder', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
-                        </div>
-                        <div className="grid grid-cols-3 gap-2">
-                           <div className="space-y-1">
-                             <label className="text-[8px] font-black text-gray-600 uppercase">Aba Jogos</label>
-                             <input type="text" value={siteSettings.tab_games || ''} onChange={e => updateSetting('tab_games', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
-                           </div>
-                           <div className="space-y-1">
-                             <label className="text-[8px] font-black text-gray-600 uppercase">Aba GP</label>
-                             <input type="text" value={siteSettings.tab_gamepass || ''} onChange={e => updateSetting('tab_gamepass', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
-                           </div>
-                           <div className="space-y-1">
-                             <label className="text-[8px] font-black text-gray-600 uppercase">Aba Pre</label>
-                             <input type="text" value={siteSettings.tab_preorder || ''} onChange={e => updateSetting('tab_preorder', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
-                           </div>
-                        </div>
-                      </div>
-
-                      {/* HERO */}
-                      <div className="space-y-4">
-                        <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest border-b border-white/10 pb-1">HERO E HOME</p>
-                        <div className="space-y-1">
-                          <label className="text-[8px] font-black text-gray-600 uppercase">Título Principal</label>
-                          <input type="text" value={siteSettings.hero_title || ''} onChange={e => updateSetting('hero_title', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
-                        </div>
-                        <div className="space-y-1">
-                          <label className="text-[8px] font-black text-gray-600 uppercase">Descrição Hero</label>
-                          <textarea rows={2} value={siteSettings.hero_description || ''} onChange={e => updateSetting('hero_description', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
-                        </div>
-                      </div>
-
-                      {/* VITRINES */}
-                      <div className="space-y-4">
-                        <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest border-b border-white/10 pb-1">SEÇÕES / VITRINES</p>
-                        <div className="space-y-1">
-                          <label className="text-[8px] font-black text-gray-600 uppercase">Título Game Pass</label>
-                          <input type="text" value={siteSettings.gamepass_title || ''} onChange={e => updateSetting('gamepass_title', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
-                        </div>
-                        <div className="space-y-1">
-                          <label className="text-[8px] font-black text-gray-600 uppercase">Subtítulo Game Pass</label>
-                          <input type="text" value={siteSettings.gamepass_subtitle || ''} onChange={e => updateSetting('gamepass_subtitle', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
-                        </div>
-                        <div className="space-y-1">
-                          <label className="text-[8px] font-black text-gray-600 uppercase">Título Pré-Venda</label>
-                          <input type="text" value={siteSettings.prevenda_title || ''} onChange={e => updateSetting('prevenda_title', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
-                        </div>
-                        <div className="space-y-1">
-                          <label className="text-[8px] font-black text-gray-600 uppercase">Subtítulo Pré-Venda</label>
-                          <input type="text" value={siteSettings.prevenda_subtitle || ''} onChange={e => updateSetting('prevenda_subtitle', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
-                        </div>
-                        <div className="space-y-1">
-                          <label className="text-[8px] font-black text-gray-600 uppercase">Título Catálogo</label>
-                          <input type="text" value={siteSettings.catalog_title || ''} onChange={e => updateSetting('catalog_title', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
-                        </div>
-                      </div>
-
-                      {/* CARRINHO */}
-                      <div className="space-y-4">
-                        <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest border-b border-white/10 pb-1">CARRINHO E CHECKOUT</p>
-                        <div className="space-y-1">
-                          <label className="text-[8px] font-black text-gray-600 uppercase">Título Carrinho</label>
-                          <input type="text" value={siteSettings.cart_title || ''} onChange={e => updateSetting('cart_title', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
-                        </div>
-                        <div className="space-y-1">
-                          <label className="text-[8px] font-black text-gray-600 uppercase">Texto Carrinho Vazio</label>
-                          <input type="text" value={siteSettings.cart_empty_text || ''} onChange={e => updateSetting('cart_empty_text', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
-                        </div>
-                        <div className="space-y-1">
-                          <label className="text-[8px] font-black text-gray-600 uppercase">Botão Finalizar</label>
-                          <input type="text" value={siteSettings.checkout_button_text || ''} onChange={e => updateSetting('checkout_button_text', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
-                        </div>
-                      </div>
-
-                      {/* LOGIN & FOOTER */}
-                      <div className="space-y-4">
-                        <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest border-b border-white/10 pb-1">LOGIN E RODAPÉ</p>
-                        <div className="space-y-1">
-                          <label className="text-[8px] font-black text-gray-600 uppercase">Título Login</label>
-                          <input type="text" value={siteSettings.login_title || ''} onChange={e => updateSetting('login_title', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
-                        </div>
-                        <div className="space-y-1">
-                          <label className="text-[8px] font-black text-gray-600 uppercase">Subtítulo Login</label>
-                          <input type="text" value={siteSettings.login_subtitle || ''} onChange={e => updateSetting('login_subtitle', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
-                        </div>
-                        <div className="space-y-1">
-                          <label className="text-[8px] font-black text-gray-600 uppercase">Botão Login</label>
-                          <input type="text" value={siteSettings.login_btn_text || ''} onChange={e => updateSetting('login_btn_text', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
-                        </div>
-                        <div className="space-y-1">
-                          <label className="text-[8px] font-black text-gray-600 uppercase">Rodapé (Copyright)</label>
-                          <textarea rows={2} value={siteSettings.login_footer || ''} onChange={e => updateSetting('login_footer', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
-                        </div>
-                      </div>
-
-                   </div>
-
-                   <button onClick={handleSaveSettings} disabled={authLoading} className="w-full bg-[var(--neon-green)] text-black py-6 rounded-3xl font-black flex items-center justify-center gap-3 uppercase text-[10px] shadow-xl hover:scale-[1.02] transition-all">
-                      {authLoading ? <Loader2 className="animate-spin" /> : <Save />} SALVAR TODAS AS ALTERAÇÕES
-                   </button>
-                </div>
-              </div>
-
-              {/* VENDAS E ESTOQUE */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                 <div className="bg-[#070709] border border-white/5 p-10 rounded-[4rem] space-y-6">
-                    <div className="flex items-center justify-between">
-                       <h3 className="text-xl font-black uppercase italic text-white">HISTÓRICO DE PEDIDOS</h3>
-                       <TrendingUp className="text-[var(--neon-green)] w-5 h-5" />
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    {/* IDENTIDADE E VISUAL */}
+                    <div className="bg-[#070709] border border-white/5 p-10 rounded-[4rem] space-y-6">
+                       <div className="flex items-center gap-3 text-[var(--neon-green)] mb-2">
+                          <Palette className="w-5 h-5" />
+                          <h3 className="text-[12px] font-black uppercase italic">IDENTIDADE VISUAL</h3>
+                       </div>
+                       <div className="space-y-4">
+                          <div className="space-y-1">
+                            <label className="text-[9px] font-black text-gray-500 uppercase">Logo URL (PNG Transparente)</label>
+                            <input type="text" value={siteSettings.logo_url || ''} onChange={e => updateSetting('logo_url', e.target.value)} className="w-full bg-black border border-white/10 rounded-2xl p-4 text-white text-xs" placeholder="Link da imagem .png" />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-[9px] font-black text-gray-500 uppercase">Cor do Neon</label>
+                            <input type="color" value={siteSettings.primary_color || '#ccff00'} onChange={e => updateSetting('primary_color', e.target.value)} className="w-full h-12 bg-black border border-white/10 rounded-2xl p-1" />
+                          </div>
+                       </div>
                     </div>
-                    <div className="max-h-96 overflow-y-auto custom-scrollbar space-y-3 pr-2">
-                       {stats.recentSales.map(sale => (
-                         <div 
-                           key={sale.id} 
-                           className="flex flex-col gap-4 p-6 bg-black/40 border border-white/5 rounded-3xl hover:border-[var(--neon-green)]/30 transition-all group relative overflow-hidden"
-                         >
-                            <div className="flex justify-between items-start" onClick={() => setSelectedOrder(sale)}>
-                               <div className="space-y-1 flex-grow cursor-pointer">
-                                  <div className="flex items-center gap-2">
-                                     <p className="text-white font-black text-[11px] uppercase italic">#{sale.id.slice(0,6).toUpperCase()}</p>
-                                     <div className={`px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-tighter ${sale.status === 'aprovado' ? 'bg-green-600/20 text-green-500' : 'bg-orange-600/20 text-orange-500'}`}>
-                                        {sale.status}
-                                     </div>
-                                  </div>
-                                  <p className="text-[9px] text-gray-500 font-bold uppercase truncate max-w-[200px]">{sale.customer_email || 'Email não registrado'}</p>
+                    {/* PAGAMENTO E GATEWAYS */}
+                    <div className="bg-[#070709] border border-[var(--neon-green)]/20 p-10 rounded-[4rem] space-y-6">
+                       <div className="flex items-center gap-3 text-orange-500 mb-2">
+                          <CreditCard className="w-5 h-5" />
+                          <h3 className="text-[12px] font-black uppercase italic">GATEWAYS DE PAGAMENTO</h3>
+                       </div>
+                       <div className="space-y-4">
+                          <div className="bg-black/40 p-4 rounded-2xl border border-white/5 space-y-4">
+                            <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Opção PIX Manual</p>
+                            <div className="space-y-1">
+                              <label className="text-[8px] font-black text-gray-600 uppercase">Chave PIX</label>
+                              <input type="text" value={siteSettings.pix_key || ''} onChange={e => updateSetting('pix_key', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                            </div>
+                            <div className="flex items-center gap-2">
+                               <input type="checkbox" checked={siteSettings.enable_pix === 'true'} onChange={e => updateSetting('enable_pix', String(e.target.checked))} className="w-4 h-4 accent-[var(--neon-green)]" />
+                               <label className="text-[9px] font-black text-gray-500">HABILITAR PIX</label>
+                            </div>
+                          </div>
+                          <div className="bg-blue-600/5 p-4 rounded-2xl border border-blue-500/20 space-y-4">
+                            <p className="text-[9px] font-black text-blue-400 uppercase tracking-widest">Opção Stripe (Cartão)</p>
+                            <div className="space-y-1">
+                              <label className="text-[8px] font-black text-gray-600 uppercase">Stripe Public Key</label>
+                              <input type="text" value={siteSettings.stripe_public_key || ''} onChange={e => updateSetting('stripe_public_key', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" placeholder="pk_live_..." />
+                            </div>
+                            <div className="flex items-center gap-2">
+                               <input type="checkbox" checked={siteSettings.enable_stripe === 'true'} onChange={e => updateSetting('enable_stripe', String(e.target.checked))} className="w-4 h-4 accent-blue-500" />
+                               <label className="text-[9px] font-black text-gray-500">HABILITAR STRIPE</label>
+                            </div>
+                          </div>
+                       </div>
+                    </div>
+                    {/* DICIONÁRIO DE TEXTOS EXPANDIDO */}
+                    <div className="bg-[#070709] border border-white/5 p-10 rounded-[4rem] space-y-6">
+                       <div className="flex items-center gap-3 text-blue-500 mb-2">
+                          <Languages className="w-5 h-5" />
+                          <h3 className="text-[12px] font-black uppercase italic">DICIONÁRIO DO SITE</h3>
+                       </div>
+                       
+                       <div className="space-y-6 max-h-[500px] overflow-y-auto custom-scrollbar pr-2">
+                          
+                          {/* COMO FUNCIONA */}
+                          <div className="space-y-4">
+                            <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest border-b border-white/10 pb-1">COMO FUNCIONA & TIPOS DE CONTA</p>
+                            <div className="space-y-1">
+                              <label className="text-[8px] font-black text-gray-600 uppercase">Título Seção</label>
+                              <input type="text" value={siteSettings.how_it_works_title || ''} onChange={e => updateSetting('how_it_works_title', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[8px] font-black text-gray-600 uppercase">Subtítulo Seção</label>
+                              <input type="text" value={siteSettings.how_it_works_subtitle || ''} onChange={e => updateSetting('how_it_works_subtitle', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[8px] font-black text-gray-600 uppercase">Texto Botão</label>
+                              <input type="text" value={siteSettings.how_it_works_btn || ''} onChange={e => updateSetting('how_it_works_btn', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[8px] font-black text-gray-600 uppercase">URL Imagem Console</label>
+                              <input type="text" value={siteSettings.how_it_works_image || ''} onChange={e => updateSetting('how_it_works_image', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[8px] font-black text-orange-500 uppercase">Texto Explicação Parental</label>
+                              <textarea rows={4} value={siteSettings.text_parental || ''} onChange={e => updateSetting('text_parental', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[8px] font-black text-blue-500 uppercase">Texto Explicação Exclusiva</label>
+                              <textarea rows={4} value={siteSettings.text_exclusive || ''} onChange={e => updateSetting('text_exclusive', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                            </div>
+                          </div>
+
+                          {/* GERAL */}
+                          <div className="space-y-4">
+                            <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest border-b border-white/10 pb-1">NAVEGAÇÃO E GERAL</p>
+                            <div className="space-y-1">
+                              <label className="text-[8px] font-black text-gray-600 uppercase">Placeholder Busca</label>
+                              <input type="text" value={siteSettings.search_placeholder || ''} onChange={e => updateSetting('search_placeholder', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                            </div>
+                            <div className="grid grid-cols-3 gap-2">
+                               <div className="space-y-1">
+                                 <label className="text-[8px] font-black text-gray-600 uppercase">Aba Jogos</label>
+                                 <input type="text" value={siteSettings.tab_games || ''} onChange={e => updateSetting('tab_games', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
                                </div>
-                               <div className="text-right flex flex-col items-end gap-2">
-                                  <button 
-                                    onClick={(e) => { e.stopPropagation(); setOrderToDelete(sale.id); }}
-                                    className="p-2 bg-red-600/10 text-red-500 rounded-xl opacity-0 group-hover:opacity-100 transition-all hover:bg-red-600 hover:text-white"
-                                  >
-                                    <Trash2 className="w-3 h-3" />
-                                  </button>
-                                  <p className="text-[var(--neon-green)] font-black text-lg italic tracking-tighter">R$ {sale.total_amount.toFixed(2)}</p>
-                                  <p className="text-[8px] text-gray-600 font-black uppercase">{new Date(sale.created_at).toLocaleDateString('pt-BR')}</p>
+                               <div className="space-y-1">
+                                 <label className="text-[8px] font-black text-gray-600 uppercase">Aba GP</label>
+                                 <input type="text" value={siteSettings.tab_gamepass || ''} onChange={e => updateSetting('tab_gamepass', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                               </div>
+                               <div className="space-y-1">
+                                 <label className="text-[8px] font-black text-gray-600 uppercase">Aba Pre</label>
+                                 <input type="text" value={siteSettings.tab_preorder || ''} onChange={e => updateSetting('tab_preorder', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
                                </div>
                             </div>
-                            <div className="flex items-center justify-between pt-2 border-t border-white/5 cursor-pointer" onClick={() => setSelectedOrder(sale)}>
-                               <div className="flex -space-x-3">
-                                  {sale.items?.slice(0, 3).map((item: any, idx: number) => (
-                                    <img key={idx} src={item.image_url} className="w-8 h-10 rounded-lg object-cover border-2 border-[#070709] shadow-lg" />
-                                  ))}
-                                  {sale.items?.length > 3 && (
-                                    <div className="w-8 h-10 rounded-lg bg-white/5 flex items-center justify-center text-[10px] text-gray-500 font-black border-2 border-[#070709]">+{sale.items.length - 3}</div>
-                                  )}
-                               </div>
-                               <ChevronRight className="w-5 h-5 text-gray-600 group-hover:text-[var(--neon-green)] transition-colors" />
-                            </div>
-                         </div>
-                       ))}
-                    </div>
-                 </div>
+                          </div>
 
-                 {/* NOVA SEÇÃO DE ORGANIZAÇÃO DE PRODUTOS */}
-                 <div className="bg-[#070709] border border-white/5 p-10 rounded-[4rem] space-y-6">
+                          {/* HERO */}
+                          <div className="space-y-4">
+                            <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest border-b border-white/10 pb-1">HERO E HOME</p>
+                            <div className="space-y-1">
+                              <label className="text-[8px] font-black text-gray-600 uppercase">Título Principal</label>
+                              <input type="text" value={siteSettings.hero_title || ''} onChange={e => updateSetting('hero_title', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[8px] font-black text-gray-600 uppercase">Descrição Hero</label>
+                              <textarea rows={2} value={siteSettings.hero_description || ''} onChange={e => updateSetting('hero_description', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                            </div>
+                          </div>
+
+                          {/* VITRINES */}
+                          <div className="space-y-4">
+                            <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest border-b border-white/10 pb-1">SEÇÕES / VITRINES</p>
+                            <div className="space-y-1">
+                              <label className="text-[8px] font-black text-gray-600 uppercase">Título Game Pass</label>
+                              <input type="text" value={siteSettings.gamepass_title || ''} onChange={e => updateSetting('gamepass_title', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[8px] font-black text-gray-600 uppercase">Subtítulo Game Pass</label>
+                              <input type="text" value={siteSettings.gamepass_subtitle || ''} onChange={e => updateSetting('gamepass_subtitle', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[8px] font-black text-gray-600 uppercase">Título Pré-Venda</label>
+                              <input type="text" value={siteSettings.prevenda_title || ''} onChange={e => updateSetting('prevenda_title', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[8px] font-black text-gray-600 uppercase">Subtítulo Pré-Venda</label>
+                              <input type="text" value={siteSettings.prevenda_subtitle || ''} onChange={e => updateSetting('prevenda_subtitle', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[8px] font-black text-gray-600 uppercase">Título Catálogo</label>
+                              <input type="text" value={siteSettings.catalog_title || ''} onChange={e => updateSetting('catalog_title', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                            </div>
+                          </div>
+
+                          {/* CARRINHO */}
+                          <div className="space-y-4">
+                            <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest border-b border-white/10 pb-1">CARRINHO E CHECKOUT</p>
+                            <div className="space-y-1">
+                              <label className="text-[8px] font-black text-gray-600 uppercase">Título Carrinho</label>
+                              <input type="text" value={siteSettings.cart_title || ''} onChange={e => updateSetting('cart_title', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[8px] font-black text-gray-600 uppercase">Texto Carrinho Vazio</label>
+                              <input type="text" value={siteSettings.cart_empty_text || ''} onChange={e => updateSetting('cart_empty_text', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[8px] font-black text-gray-600 uppercase">Botão Finalizar</label>
+                              <input type="text" value={siteSettings.checkout_button_text || ''} onChange={e => updateSetting('checkout_button_text', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                            </div>
+                          </div>
+
+                          {/* LOGIN & FOOTER */}
+                          <div className="space-y-4">
+                            <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest border-b border-white/10 pb-1">LOGIN E RODAPÉ</p>
+                            <div className="space-y-1">
+                              <label className="text-[8px] font-black text-gray-600 uppercase">Título Login</label>
+                              <input type="text" value={siteSettings.login_title || ''} onChange={e => updateSetting('login_title', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[8px] font-black text-gray-600 uppercase">Subtítulo Login</label>
+                              <input type="text" value={siteSettings.login_subtitle || ''} onChange={e => updateSetting('login_subtitle', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[8px] font-black text-gray-600 uppercase">Botão Login</label>
+                              <input type="text" value={siteSettings.login_btn_text || ''} onChange={e => updateSetting('login_btn_text', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[8px] font-black text-gray-600 uppercase">Rodapé (Copyright)</label>
+                              <textarea rows={2} value={siteSettings.login_footer || ''} onChange={e => updateSetting('login_footer', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                            </div>
+                          </div>
+
+                       </div>
+
+                       <button onClick={handleSaveSettings} disabled={authLoading} className="w-full bg-[var(--neon-green)] text-black py-6 rounded-3xl font-black flex items-center justify-center gap-3 uppercase text-[10px] shadow-xl hover:scale-[1.02] transition-all">
+                          {authLoading ? <Loader2 className="animate-spin" /> : <Save />} SALVAR TODAS AS ALTERAÇÕES
+                       </button>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                     <div className="bg-[#070709] border border-white/5 p-10 rounded-[4rem] space-y-6">
+                        <div className="flex items-center justify-between">
+                           <h3 className="text-xl font-black uppercase italic text-white">HISTÓRICO DE PEDIDOS</h3>
+                           <TrendingUp className="text-[var(--neon-green)] w-5 h-5" />
+                        </div>
+                        <div className="max-h-96 overflow-y-auto custom-scrollbar space-y-3 pr-2">
+                           {stats.recentSales.map(sale => (
+                             <div 
+                               key={sale.id} 
+                               className="flex flex-col gap-4 p-6 bg-black/40 border border-white/5 rounded-3xl hover:border-[var(--neon-green)]/30 transition-all group relative overflow-hidden"
+                             >
+                                <div className="flex justify-between items-start" onClick={() => setSelectedOrder(sale)}>
+                                   <div className="space-y-1 flex-grow cursor-pointer">
+                                      <div className="flex items-center gap-2">
+                                         <p className="text-white font-black text-[11px] uppercase italic">#{sale.id.slice(0,6).toUpperCase()}</p>
+                                         <div className={`px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-tighter ${sale.status === 'aprovado' ? 'bg-green-600/20 text-green-500' : 'bg-orange-600/20 text-orange-500'}`}>
+                                            {sale.status}
+                                         </div>
+                                      </div>
+                                      <p className="text-[9px] text-gray-500 font-bold uppercase truncate max-w-[200px]">{sale.customer_email || 'Email não registrado'}</p>
+                                   </div>
+                                   <div className="text-right flex flex-col items-end gap-2">
+                                      <button 
+                                        onClick={(e) => { e.stopPropagation(); setOrderToDelete(sale.id); }}
+                                        className="p-2 bg-red-600/10 text-red-500 rounded-xl opacity-0 group-hover:opacity-100 transition-all hover:bg-red-600 hover:text-white"
+                                      >
+                                        <Trash2 className="w-3 h-3" />
+                                      </button>
+                                      <p className="text-[var(--neon-green)] font-black text-lg italic tracking-tighter">R$ {sale.total_amount.toFixed(2)}</p>
+                                      <p className="text-[8px] text-gray-600 font-black uppercase">{new Date(sale.created_at).toLocaleDateString('pt-BR')}</p>
+                                   </div>
+                                </div>
+                             </div>
+                           ))}
+                        </div>
+                     </div>
+                  </div>
+                </div>
+              )}
+
+              {activeAdminTab === 'products' && (
+                <div className="bg-[#070709] border border-white/5 p-10 rounded-[4rem] space-y-6 animate-bounce-in">
                     <div className="flex items-center justify-between">
                        <h3 className="text-xl font-black uppercase italic text-white">VITRINE E ORDEM</h3>
                        <p className="text-[9px] text-gray-500 font-bold uppercase tracking-widest">Organize seus produtos</p>
                     </div>
-                    <div className="max-h-96 overflow-y-auto custom-scrollbar space-y-3 pr-2">
+                    <div className="max-h-[60vh] overflow-y-auto custom-scrollbar space-y-3 pr-2">
                        {games.map((game, index) => (
                          <div key={game.id} className="flex items-center gap-4 bg-black/40 border border-white/5 p-4 rounded-3xl group">
                             <div className="flex flex-col gap-1">
@@ -1044,13 +1098,185 @@ const App: React.FC = () => {
                          </div>
                        ))}
                     </div>
-                 </div>
-              </div>
+                </div>
+              )}
+
+              {activeAdminTab === 'licenses' && (
+                <div className="space-y-8 animate-bounce-in">
+                   <div className="flex justify-between items-center">
+                      <h3 className="text-2xl font-black italic uppercase text-white">PAINEL DE ENTREGAS & GAME PASS</h3>
+                      <button onClick={createNewLicense} className="bg-[var(--neon-green)] text-black px-6 py-4 rounded-2xl font-black uppercase text-xs flex items-center gap-2 shadow-lg hover:scale-105 transition-transform">
+                         <Plus className="w-4 h-4" /> Nova Licença
+                      </button>
+                   </div>
+
+                   <div className="grid grid-cols-1 gap-6">
+                      {licenses.length === 0 ? (
+                         <div className="text-center py-20 bg-white/5 rounded-[3rem] border border-white/5">
+                            <Key className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+                            <p className="text-gray-500 font-black uppercase text-xs">Nenhuma licença cadastrada</p>
+                         </div>
+                      ) : (
+                         licenses.map(lic => {
+                            const daysLeft = lic.is_gamepass ? calculateDaysRemaining(lic.end_date) : null;
+                            const isExpiring = daysLeft !== null && daysLeft <= 10 && daysLeft >= 0;
+                            const isExpired = daysLeft !== null && daysLeft < 0;
+
+                            return (
+                               <div key={lic.id} className="bg-[#070709] border border-white/10 rounded-[2.5rem] p-8 flex flex-col lg:flex-row gap-8 relative group hover:border-[var(--neon-green)]/30 transition-all">
+                                  <div className="flex-1 space-y-4">
+                                     <div className="flex items-center gap-3">
+                                        <div className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-tighter ${lic.product_category === 'gamepass' ? 'bg-green-600 text-white' : 'bg-orange-600 text-white'}`}>
+                                           {lic.product_category === 'gamepass' ? 'GAME PASS' : 'JOGO COMPLETO'}
+                                        </div>
+                                        {lic.is_gamepass && (
+                                           <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-tighter ${isExpired ? 'bg-red-600 text-white' : isExpiring ? 'bg-yellow-500 text-black' : 'bg-white/10 text-gray-400'}`}>
+                                              <Clock className="w-3 h-3" /> 
+                                              {isExpired ? 'EXPIRADO' : `${daysLeft} DIAS RESTANTES`}
+                                           </div>
+                                        )}
+                                     </div>
+                                     <div>
+                                        <h4 className="text-xl font-black text-white italic uppercase">{lic.game_title}</h4>
+                                        <p className="text-xs text-gray-500 font-bold uppercase mt-1">{lic.customer_name} • {lic.customer_email}</p>
+                                     </div>
+                                     <div className="grid grid-cols-2 gap-4 bg-white/5 p-4 rounded-2xl">
+                                        <div>
+                                           <p className="text-[8px] text-gray-500 font-black uppercase">Conta Entregue</p>
+                                           <p className="text-white text-xs font-mono select-all">{lic.assigned_email || 'Não atribuída'}</p>
+                                        </div>
+                                        <div>
+                                           <p className="text-[8px] text-gray-500 font-black uppercase">Senha</p>
+                                           <p className="text-white text-xs font-mono select-all">{lic.assigned_password || '********'}</p>
+                                        </div>
+                                     </div>
+                                  </div>
+
+                                  {lic.is_gamepass && (
+                                     <div className="bg-black/40 p-6 rounded-3xl border border-white/5 min-w-[250px] space-y-3">
+                                        <p className="text-[9px] text-[var(--neon-green)] font-black uppercase tracking-widest text-center border-b border-white/5 pb-2">ASSINATURA</p>
+                                        <div className="flex justify-between items-center text-xs">
+                                           <span className="text-gray-500 font-bold">Início:</span>
+                                           <span className="text-white">{lic.start_date ? new Date(lic.start_date).toLocaleDateString('pt-BR') : '-'}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center text-xs">
+                                           <span className="text-gray-500 font-bold">Fim:</span>
+                                           <span className={`font-black ${isExpired ? 'text-red-500' : 'text-white'}`}>{lic.end_date ? new Date(lic.end_date).toLocaleDateString('pt-BR') : '-'}</span>
+                                        </div>
+                                        {isExpiring && !isExpired && (
+                                           <div className="bg-yellow-500/10 text-yellow-500 p-2 rounded-xl text-[9px] font-black uppercase text-center border border-yellow-500/20 mt-2">
+                                              <AlertTriangle className="w-3 h-3 inline-block mr-1" /> Renovar em breve
+                                           </div>
+                                        )}
+                                     </div>
+                                  )}
+
+                                  <div className="flex flex-col gap-2 justify-center">
+                                     <button onClick={() => { setEditingLicense(lic); setShowLicenseModal(true); }} className="bg-white/5 p-4 rounded-2xl text-blue-500 hover:bg-blue-600 hover:text-white transition-all"><Edit2 className="w-5 h-5" /></button>
+                                     <button onClick={() => setLicenseToDelete(lic.id)} className="bg-white/5 p-4 rounded-2xl text-red-500 hover:bg-red-600 hover:text-white transition-all"><Trash2 className="w-5 h-5" /></button>
+                                  </div>
+                               </div>
+                            )
+                         })
+                      )}
+                   </div>
+                </div>
+              )}
            </div>
         </div>
       )}
 
-      {/* MODAL DE DETALHES DO PEDIDO */}
+      {/* MODAL DE LICENÇAS */}
+      {showLicenseModal && editingLicense && (
+         <div className="fixed inset-0 z-[600] bg-black/95 backdrop-blur-md flex items-center justify-center p-4">
+            <div className="bg-[#0a0a0c] border border-[var(--neon-green)]/10 w-full max-w-2xl rounded-[3.5rem] overflow-hidden shadow-2xl">
+               <div className="p-8 border-b border-white/5 flex items-center justify-between">
+                  <h3 className="text-xl font-black italic uppercase text-white">GERENCIAR ENTREGA</h3>
+                  <button onClick={() => setShowLicenseModal(false)} className="bg-white/5 p-2 rounded-xl text-gray-500 hover:text-white"><X /></button>
+               </div>
+               <form onSubmit={handleSaveLicense} className="p-8 space-y-6 max-h-[80vh] overflow-y-auto custom-scrollbar">
+                  <div className="grid grid-cols-2 gap-6">
+                     <div className="space-y-2">
+                        <label className="text-[9px] font-black text-gray-500 uppercase">Nome do Cliente</label>
+                        <input required type="text" value={editingLicense.customer_name} onChange={e => setEditingLicense({...editingLicense, customer_name: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl p-4 text-white text-xs" />
+                     </div>
+                     <div className="space-y-2">
+                        <label className="text-[9px] font-black text-gray-500 uppercase">Email do Cliente</label>
+                        <input required type="email" value={editingLicense.customer_email} onChange={e => setEditingLicense({...editingLicense, customer_email: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl p-4 text-white text-xs" />
+                     </div>
+                  </div>
+
+                  <div className="space-y-2">
+                     <label className="text-[9px] font-black text-gray-500 uppercase">Produto Comprado</label>
+                     <input required type="text" value={editingLicense.game_title} onChange={e => setEditingLicense({...editingLicense, game_title: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl p-4 text-[var(--neon-green)] font-bold text-sm" placeholder="Nome do Jogo ou Game Pass" />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                     <div className="space-y-2">
+                        <label className="text-[9px] font-black text-gray-500 uppercase">Categoria</label>
+                        <select value={editingLicense.product_category} onChange={e => setEditingLicense({...editingLicense, product_category: e.target.value, is_gamepass: e.target.value === 'gamepass'})} className="w-full bg-black border border-white/10 rounded-xl p-4 text-white text-xs">
+                           <option value="jogo">Jogo Completo</option>
+                           <option value="gamepass">Game Pass</option>
+                        </select>
+                     </div>
+                     <div className="space-y-2">
+                        <label className="text-[9px] font-black text-gray-500 uppercase">Tipo de Conta</label>
+                        <select value={editingLicense.account_type} onChange={e => setEditingLicense({...editingLicense, account_type: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl p-4 text-white text-xs">
+                           <option value="parental">Parental</option>
+                           <option value="exclusiva">Exclusiva</option>
+                        </select>
+                     </div>
+                  </div>
+
+                  <div className="bg-blue-900/10 p-6 rounded-3xl border border-blue-500/20 space-y-4">
+                     <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest border-b border-blue-500/10 pb-2">DADOS DE ACESSO ENTREGUES</p>
+                     <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                           <label className="text-[9px] font-black text-gray-500 uppercase">Email da Conta</label>
+                           <input type="text" value={editingLicense.assigned_email} onChange={e => setEditingLicense({...editingLicense, assigned_email: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl p-4 text-white text-xs font-mono" placeholder="conta@xbox.com" />
+                        </div>
+                        <div className="space-y-2">
+                           <label className="text-[9px] font-black text-gray-500 uppercase">Senha</label>
+                           <input type="text" value={editingLicense.assigned_password} onChange={e => setEditingLicense({...editingLicense, assigned_password: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl p-4 text-white text-xs font-mono" placeholder="Senha123" />
+                        </div>
+                     </div>
+                  </div>
+
+                  {editingLicense.is_gamepass && (
+                     <div className="bg-green-900/10 p-6 rounded-3xl border border-green-500/20 space-y-4">
+                        <p className="text-[10px] font-black text-green-400 uppercase tracking-widest border-b border-green-500/10 pb-2">CONTROLE DE ASSINATURA</p>
+                        <div className="grid grid-cols-3 gap-4">
+                           <div className="space-y-2">
+                              <label className="text-[9px] font-black text-gray-500 uppercase">Meses</label>
+                              <input type="number" value={editingLicense.subscription_months} onChange={e => {
+                                 const months = parseInt(e.target.value);
+                                 const start = new Date(editingLicense.start_date || new Date());
+                                 const end = new Date(start);
+                                 end.setMonth(end.getMonth() + months);
+                                 setEditingLicense({...editingLicense, subscription_months: months, end_date: end.toISOString().split('T')[0]});
+                              }} className="w-full bg-black border border-white/10 rounded-xl p-4 text-white text-xs" />
+                           </div>
+                           <div className="space-y-2">
+                              <label className="text-[9px] font-black text-gray-500 uppercase">Início</label>
+                              <input type="date" value={editingLicense.start_date} onChange={e => setEditingLicense({...editingLicense, start_date: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl p-4 text-white text-xs" />
+                           </div>
+                           <div className="space-y-2">
+                              <label className="text-[9px] font-black text-gray-500 uppercase">Vencimento</label>
+                              <input type="date" value={editingLicense.end_date} onChange={e => setEditingLicense({...editingLicense, end_date: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl p-4 text-white text-xs" />
+                           </div>
+                        </div>
+                     </div>
+                  )}
+
+                  <button type="submit" className="w-full bg-[var(--neon-green)] text-black py-6 rounded-2xl font-black uppercase text-xs tracking-widest shadow-lg flex items-center justify-center gap-3">
+                     <Save className="w-4 h-4" /> SALVAR DADOS
+                  </button>
+               </form>
+            </div>
+         </div>
+      )}
+
+      {/* MODAL DE DETALHES DO PEDIDO - Mantido */}
       {selectedOrder && (
         <div className="fixed inset-0 z-[600] bg-black/95 backdrop-blur-md flex items-center justify-center p-4">
            <div className="bg-[#070709] border border-white/10 w-full max-w-lg rounded-[3.5rem] overflow-hidden animate-bounce-in shadow-[0_0_100px_rgba(0,0,0,1)]">
@@ -1181,6 +1407,25 @@ const App: React.FC = () => {
               <div className="flex gap-4">
                  <button onClick={() => setOrderToDelete(null)} className="flex-1 bg-white/5 py-5 rounded-3xl font-black text-gray-500 uppercase text-[10px] tracking-widest">VOLTAR</button>
                  <button onClick={confirmDeleteOrder} className="flex-1 bg-red-600 py-5 rounded-3xl font-black text-white uppercase text-[10px] tracking-widest shadow-lg shadow-red-600/20">CONFIRMAR</button>
+              </div>
+           </div>
+        </div>
+      )}
+
+      {/* CONFIRMAÇÃO DE EXCLUSÃO DE LICENÇA */}
+      {licenseToDelete && (
+        <div className="fixed inset-0 z-[700] bg-black/95 backdrop-blur-md flex items-center justify-center p-6">
+           <div className="bg-[#070709] p-12 rounded-[4rem] max-w-sm w-full text-center space-y-8 border border-red-600/20 shadow-[0_0_100px_rgba(220,38,38,0.1)]">
+              <div className="w-20 h-20 bg-red-600/10 rounded-full flex items-center justify-center mx-auto">
+                 <Trash2 className="w-10 h-10 text-red-600" />
+              </div>
+              <div className="space-y-2">
+                 <h3 className="text-2xl font-black text-white uppercase italic">APAGAR LICENÇA?</h3>
+                 <p className="text-[9px] text-gray-500 font-bold uppercase tracking-widest leading-relaxed px-4">O registro será removido permanentemente.</p>
+              </div>
+              <div className="flex gap-4">
+                 <button onClick={() => setLicenseToDelete(null)} className="flex-1 bg-white/5 py-5 rounded-3xl font-black text-gray-500 uppercase text-[10px] tracking-widest">VOLTAR</button>
+                 <button onClick={() => handleDeleteLicense(licenseToDelete)} className="flex-1 bg-red-600 py-5 rounded-3xl font-black text-white uppercase text-[10px] tracking-widest shadow-lg shadow-red-600/20">CONFIRMAR</button>
               </div>
            </div>
         </div>

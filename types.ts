@@ -38,3 +38,21 @@ export interface User {
   email: string;
   isAdmin: boolean;
 }
+
+export interface License {
+  id: string;
+  created_at: string;
+  customer_name: string;
+  customer_email: string;
+  customer_phone?: string;
+  game_title: string;
+  product_category: string;
+  account_type: string;
+  assigned_email: string;
+  assigned_password: string;
+  is_gamepass: boolean;
+  subscription_months?: number;
+  start_date?: string;
+  end_date?: string;
+  status: 'ativo' | 'expirado' | 'cancelado';
+}
