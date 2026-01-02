@@ -6,6 +6,7 @@ export interface Game {
   platform: string;
   image_url: string;
   is_featured: boolean;
+  is_available?: boolean; // Novo campo
   category: 'jogo' | 'gamepass' | 'prevenda';
   display_order?: number;
   

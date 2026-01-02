@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { X, Sparkles, Loader2, Save, Zap, Gamepad2, Layers, Rocket, Search, Globe } from 'lucide-react';
+import { X, Sparkles, Loader2, Save, Zap, Gamepad2, Layers, Rocket, Search, Globe, Power, PowerOff } from 'lucide-react';
 import { Game } from '../types.ts';
 import { searchGameData } from '../services/geminiService.ts';
 
@@ -24,6 +24,7 @@ const AdminModal: React.FC<AdminModalProps> = ({ onClose, onSave, initialData })
     current_price: 0,
     image_url: '',
     is_featured: false,
+    is_available: true, // Padrão como disponível
     platform: 'Xbox One / Series X|S',
     category: 'jogo',
     plan_duration: '1'
@@ -38,7 +39,8 @@ const AdminModal: React.FC<AdminModalProps> = ({ onClose, onSave, initialData })
         original_price_exclusive: initialData.original_price_exclusive || 0,
         current_price_exclusive: initialData.current_price_exclusive || 0,
         original_price: initialData.original_price || 0,
-        current_price: initialData.current_price || 0
+        current_price: initialData.current_price || 0,
+        is_available: initialData.is_available !== false // Se for null ou undefined, assume true
       });
     }
   }, [initialData]);
@@ -84,6 +86,7 @@ const AdminModal: React.FC<AdminModalProps> = ({ onClose, onSave, initialData })
       description: String(formData.description).trim(),
       image_url: String(formData.image_url).trim(),
       is_featured: Boolean(formData.is_featured),
+      is_available: Boolean(formData.is_available),
       platform: formData.platform,
       category: formData.category
     };
@@ -243,9 +246,21 @@ const AdminModal: React.FC<AdminModalProps> = ({ onClose, onSave, initialData })
               <textarea rows={3} value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl p-4 text-white text-xs" />
             </div>
             
-            <div className="flex items-center gap-3">
-              <input type="checkbox" checked={formData.is_featured} onChange={e => setFormData({...formData, is_featured: e.target.checked})} className="w-5 h-5 accent-[var(--neon-green)]" />
-              <label className="text-[10px] font-black text-gray-500 uppercase">DESTACAR NA VITRINE SUPERIOR</label>
+            <div className="flex items-center gap-6 p-4 bg-white/5 rounded-2xl">
+               <div className="flex items-center gap-3">
+                 <input type="checkbox" checked={formData.is_featured} onChange={e => setFormData({...formData, is_featured: e.target.checked})} className="w-5 h-5 accent-[var(--neon-green)]" />
+                 <label className="text-[10px] font-black text-gray-500 uppercase">DESTACAR</label>
+               </div>
+               
+               <div className="h-6 w-px bg-white/10"></div>
+
+               <div className="flex items-center gap-3">
+                 <input type="checkbox" checked={formData.is_available} onChange={e => setFormData({...formData, is_available: e.target.checked})} className="w-5 h-5 accent-blue-500" />
+                 <div className="flex flex-col">
+                   <label className="text-[10px] font-black text-white uppercase">PRODUTO DISPONÍVEL</label>
+                   <span className="text-[8px] text-gray-500 font-bold">Se desmarcado, aparecerá "Indisponível"</span>
+                 </div>
+               </div>
             </div>
           </div>
 
