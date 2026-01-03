@@ -684,7 +684,7 @@ const App: React.FC = () => {
           ) : (
             <Zap className="text-[var(--neon-green)] w-8 h-8 fill-[var(--neon-green)]" />
           )}
-          <span className="text-2xl font-black italic uppercase text-white tracking-tighter">{siteSettings.login_title}</span>
+          <span className="text-2xl font-black italic uppercase text-white tracking-tighter hidden md:block">{siteSettings.login_title}</span>
         </div>
         <div className="flex items-center gap-4">
           <button onClick={() => setIsCartOpen(true)} className="relative p-4 bg-white/5 rounded-2xl text-white">
@@ -847,7 +847,7 @@ const App: React.FC = () => {
                     <p className="text-[10px] text-[var(--neon-green)] font-black uppercase tracking-[0.6em] mt-2">{siteSettings.gamepass_subtitle}</p>
                  </div>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-12">
+              <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-12">
                  {gamepassGames.map(game => (
                    <div key={game.id} className="relative group">
                      <GameCard game={game} onBuy={addToCart} />
@@ -867,7 +867,7 @@ const App: React.FC = () => {
                  <p className="text-[10px] text-orange-500 font-black uppercase tracking-[0.6em] mt-2">{siteSettings.prevenda_subtitle}</p>
               </div>
            </div>
-           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-12">
+           <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-12">
               {prevendaGames.map(game => (
                 <div key={game.id} className="relative group">
                   <GameCard game={game} onBuy={addToCart} />
@@ -901,7 +901,7 @@ const App: React.FC = () => {
          </div>
          
          {filteredCatalog.length > 0 ? (
-           <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-12 pb-48">
+           <section className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-12 pb-48">
              {filteredCatalog.map(game => (
                <div key={game.id} className="relative group">
                  <GameCard game={game} onBuy={addToCart} />
