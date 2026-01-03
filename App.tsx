@@ -118,6 +118,7 @@ const App: React.FC = () => {
     stripe_public_key: 'pk_test_51ShFjSFLtqLxkHWdRthCEvD7ZoLKkF2pTSuuaCsPEQM7tfHM3QSWw471b7mwCOXgQrj6wxLODmoOmCSntYOZxSNp00yO7Y8EvQ',
     enable_stripe: 'true',
     enable_pix: 'true',
+    enable_card_whatsapp: 'true', // Nova opção default
   });
 
   const [games, setGames] = useState<Game[]>([]);
@@ -961,7 +962,6 @@ const App: React.FC = () => {
                   </div>
 
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    {/* ... (Editor de Configurações Mantido) ... */}
                     <div className="bg-[#070709] border border-white/5 p-10 rounded-[4rem] space-y-6">
                        <div className="flex items-center gap-3 text-[var(--neon-green)] mb-2">
                           <Palette className="w-5 h-5" />
@@ -978,7 +978,8 @@ const App: React.FC = () => {
                           </div>
                        </div>
                     </div>
-                    {/* ... (Pagamento e Gateways Mantidos) ... */}
+                    
+                    {/* GATEWAYS DE PAGAMENTO */}
                     <div className="bg-[#070709] border border-[var(--neon-green)]/20 p-10 rounded-[4rem] space-y-6">
                        <div className="flex items-center gap-3 text-orange-500 mb-2">
                           <CreditCard className="w-5 h-5" />
@@ -1007,9 +1008,16 @@ const App: React.FC = () => {
                                <label className="text-[9px] font-black text-gray-500">HABILITAR STRIPE</label>
                             </div>
                           </div>
+                          <div className="bg-purple-600/5 p-4 rounded-2xl border border-purple-500/20 space-y-4">
+                            <p className="text-[9px] font-black text-purple-400 uppercase tracking-widest">Opção Cartão via WhatsApp</p>
+                            <div className="flex items-center gap-2">
+                               <input type="checkbox" checked={siteSettings.enable_card_whatsapp === 'true'} onChange={e => updateSetting('enable_card_whatsapp', String(e.target.checked))} className="w-4 h-4 accent-purple-500" />
+                               <label className="text-[9px] font-black text-gray-500">HABILITAR OPÇÃO NO CHECKOUT</label>
+                            </div>
+                          </div>
                        </div>
                     </div>
-                    {/* ... (Dicionário Mantido) ... */}
+
                     <div className="bg-[#070709] border border-white/5 p-10 rounded-[4rem] space-y-6">
                        <div className="flex items-center gap-3 text-blue-500 mb-2">
                           <Languages className="w-5 h-5" />
@@ -1017,14 +1025,12 @@ const App: React.FC = () => {
                        </div>
                        
                        <div className="space-y-6 max-h-[500px] overflow-y-auto custom-scrollbar pr-2">
-                          {/* (Conteúdo do dicionário omitido para brevidade, mantendo o existente) */}
                           <div className="space-y-4">
                             <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest border-b border-white/10 pb-1">COMO FUNCIONA & TIPOS DE CONTA</p>
                             <div className="space-y-1">
                               <label className="text-[8px] font-black text-gray-600 uppercase">Título Seção</label>
                               <input type="text" value={siteSettings.how_it_works_title || ''} onChange={e => updateSetting('how_it_works_title', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
                             </div>
-                            {/* ... Restante dos campos do dicionário ... */}
                           </div>
                        </div>
 
@@ -1401,7 +1407,6 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* CONFIRMAÇÃO DE EXCLUSÃO DE LICENÇA */}
       {licenseToDelete && (
         <div className="fixed inset-0 z-[700] bg-black/95 backdrop-blur-md flex items-center justify-center p-6">
            <div className="bg-[#070709] p-12 rounded-[4rem] max-w-sm w-full text-center space-y-8 border border-red-600/20 shadow-[0_0_100px_rgba(220,38,38,0.1)]">

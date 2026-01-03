@@ -15,7 +15,8 @@ interface CartDrawerProps {
 }
 
 const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, items, onRemove, onClear, siteSettings, customerEmail }) => {
-  const [checkoutStep, setCheckoutStep] = useState<'cart' | 'method_selection' | 'pix_instructions' | 'stripe_process' | 'success'>('cart');
+  // 'method_selection' removido do fluxo principal, agora integrado em 'cart'
+  const [checkoutStep, setCheckoutStep] = useState<'cart' | 'pix_instructions' | 'stripe_process' | 'success'>('cart');
   const [copied, setCopied] = useState(false);
   const [pixPayload, setPixPayload] = useState('');
   const [isFinishing, setIsFinishing] = useState(false);
@@ -119,7 +120,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, items, onRemov
 
       setDbError({ message: msg });
       setIsFinishing(false);
-      setCheckoutStep('method_selection');
+      setCheckoutStep('cart');
     }
   };
 
@@ -146,6 +147,18 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, items, onRemov
     } finally {
       setIsFinishing(false);
     }
+  };
+
+  const handleCardWhatsapp = () => {
+    const message = encodeURIComponent(
+      `Olá RD Digital! 💳\n\nGostaria de finalizar meu pedido via *LINK DE PAGAMENTO (Cartão)*.\n\n` +
+      `*Itens do Pedido:*\n` +
+      items.map(item => `▪️ ${item.title} (${item.accountType}) - R$ ${item.price.toFixed(2)}`).join('\n') +
+      `\n\n*Valor Total:* R$ ${total.toFixed(2)}\n` +
+      `*Email de Cadastro:* ${customerEmail || 'Não informado'}\n\n` +
+      `Aguardo o link para pagamento!`
+    );
+    window.open(`https://wa.me/${siteSettings.whatsapp_number}?text=${message}`, '_blank');
   };
 
   useEffect(() => {
@@ -182,7 +195,6 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, items, onRemov
         <div className="p-8 border-b border-white/5 flex items-center justify-between">
           <h2 className="text-xl font-black uppercase italic text-white">
             {checkoutStep === 'cart' ? (siteSettings.cart_title || 'Seu Carrinho') : 
-             checkoutStep === 'method_selection' ? 'Escolha o Pagamento' :
              checkoutStep === 'pix_instructions' ? 'Pagamento PIX' : 
              checkoutStep === 'success' ? 'Pedido Confirmado' : 
              checkoutStep === 'stripe_process' ? 'Redirecionando...' : 'Conectando...'}
@@ -223,48 +235,62 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, items, onRemov
           ) : (
             <>
               {checkoutStep === 'cart' && (
-                <div className="space-y-6">
-                  {items.map((item) => (
-                    <div key={item.cartId} className="flex gap-4 bg-white/5 p-4 rounded-3xl border border-white/5">
-                      <img src={item.image_url} alt={item.title} className="w-16 h-20 rounded-xl object-cover" />
-                      <div className="flex-grow">
-                        <h4 className="text-[11px] font-black text-white uppercase italic line-clamp-1">{item.title}</h4>
-                        <p className="text-[var(--neon-green)] font-black text-sm mt-2">R$ {item.price.toFixed(2).replace('.', ',')}</p>
-                        <p className="text-[8px] text-gray-500 font-black uppercase tracking-widest mt-1">{item.accountType}</p>
+                <div className="space-y-8">
+                  {/* LISTA DE PRODUTOS */}
+                  <div className="space-y-4">
+                    {items.map((item) => (
+                      <div key={item.cartId} className="flex gap-4 bg-white/5 p-4 rounded-3xl border border-white/5">
+                        <img src={item.image_url} alt={item.title} className="w-16 h-20 rounded-xl object-cover" />
+                        <div className="flex-grow">
+                          <h4 className="text-[11px] font-black text-white uppercase italic line-clamp-1">{item.title}</h4>
+                          <p className="text-[var(--neon-green)] font-black text-sm mt-2">R$ {item.price.toFixed(2).replace('.', ',')}</p>
+                          <p className="text-[8px] text-gray-500 font-black uppercase tracking-widest mt-1">{item.accountType}</p>
+                        </div>
+                        <button onClick={() => onRemove(item.cartId)} className="text-gray-600 hover:text-red-500 transition-colors"><Trash2 className="w-4 h-4" /></button>
                       </div>
-                      <button onClick={() => onRemove(item.cartId)} className="text-gray-600 hover:text-red-500 transition-colors"><Trash2 className="w-4 h-4" /></button>
-                    </div>
-                  ))}
-                </div>
-              )}
+                    ))}
+                  </div>
 
-              {checkoutStep === 'method_selection' && (
-                <div className="space-y-4 animate-bounce-in">
-                  <p className="text-[10px] text-gray-500 font-black uppercase tracking-[0.3em] mb-6 text-center">COMO DESEJA PAGAR?</p>
-                  
-                  {siteSettings.enable_pix === 'true' && (
-                    <button onClick={handlePixSelection} className="w-full bg-white/5 border border-white/10 p-8 rounded-[2rem] flex items-center gap-6 group hover:border-[var(--neon-green)]/40 transition-all">
-                       <div className="bg-[var(--neon-green)]/10 p-4 rounded-2xl group-hover:bg-[var(--neon-green)] transition-colors">
-                          <Wallet className="w-8 h-8 text-[var(--neon-green)] group-hover:text-black" />
-                       </div>
-                       <div className="text-left">
-                          <h4 className="text-white font-black text-sm italic uppercase">PIX MANUAL</h4>
-                          <p className="text-[9px] text-gray-500 font-bold uppercase tracking-widest">Liberação imediata via Whats</p>
-                       </div>
-                    </button>
-                  )}
+                  {/* OPÇÕES DE PAGAMENTO (INTEGRADAS AO CARRINHO) */}
+                  <div className="pt-4 border-t border-white/5 space-y-4 animate-bounce-in">
+                    <p className="text-[10px] text-gray-500 font-black uppercase tracking-[0.3em] mb-4 text-center">ESCOLHA O PAGAMENTO</p>
+                    
+                    {siteSettings.enable_pix === 'true' && (
+                      <button onClick={handlePixSelection} className="w-full bg-white/5 border border-white/10 p-6 rounded-[2rem] flex items-center gap-5 group hover:border-[var(--neon-green)]/40 transition-all hover:bg-white/10">
+                         <div className="bg-[var(--neon-green)]/10 p-3 rounded-xl group-hover:bg-[var(--neon-green)] transition-colors">
+                            <Wallet className="w-6 h-6 text-[var(--neon-green)] group-hover:text-black" />
+                         </div>
+                         <div className="text-left">
+                            <h4 className="text-white font-black text-xs italic uppercase">PIX MANUAL</h4>
+                            <p className="text-[8px] text-gray-500 font-bold uppercase tracking-widest">Aprovação Imediata</p>
+                         </div>
+                      </button>
+                    )}
 
-                  {siteSettings.enable_stripe === 'true' && (
-                    <button onClick={handleStripeCheckout} className="w-full bg-blue-600/5 border border-blue-500/10 p-8 rounded-[2rem] flex items-center gap-6 group hover:border-blue-500/40 transition-all">
-                       <div className="bg-blue-600/10 p-4 rounded-2xl group-hover:bg-blue-600 transition-colors">
-                          <CreditCard className="w-8 h-8 text-blue-500 group-hover:text-white" />
-                       </div>
-                       <div className="text-left">
-                          <h4 className="text-white font-black text-sm italic uppercase">CARTÃO DE CRÉDITO</h4>
-                          <p className="text-[9px] text-gray-500 font-bold uppercase tracking-widest">Pagamento via Stripe</p>
-                       </div>
-                    </button>
-                  )}
+                    {siteSettings.enable_stripe === 'true' && (
+                      <button onClick={handleStripeCheckout} className="w-full bg-blue-600/5 border border-blue-500/10 p-6 rounded-[2rem] flex items-center gap-5 group hover:border-blue-500/40 transition-all hover:bg-blue-600/10">
+                         <div className="bg-blue-600/10 p-3 rounded-xl group-hover:bg-blue-600 transition-colors">
+                            <CreditCard className="w-6 h-6 text-blue-500 group-hover:text-white" />
+                         </div>
+                         <div className="text-left">
+                            <h4 className="text-white font-black text-xs italic uppercase">CARTÃO DE CRÉDITO</h4>
+                            <p className="text-[8px] text-gray-500 font-bold uppercase tracking-widest">Automático via Stripe</p>
+                         </div>
+                      </button>
+                    )}
+
+                    {siteSettings.enable_card_whatsapp === 'true' && (
+                      <button onClick={handleCardWhatsapp} className="w-full bg-purple-600/5 border border-purple-500/10 p-6 rounded-[2rem] flex items-center gap-5 group hover:border-purple-500/40 transition-all hover:bg-purple-600/10">
+                         <div className="bg-purple-600/10 p-3 rounded-xl group-hover:bg-purple-600 transition-colors">
+                            <MessageCircle className="w-6 h-6 text-purple-500 group-hover:text-white" />
+                         </div>
+                         <div className="text-left">
+                            <h4 className="text-white font-black text-xs italic uppercase">CARTÃO VIA WHATSAPP</h4>
+                            <p className="text-[8px] text-gray-500 font-bold uppercase tracking-widest">Link de Pagamento</p>
+                         </div>
+                      </button>
+                    )}
+                  </div>
                 </div>
               )}
 
@@ -348,19 +374,14 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, items, onRemov
               <span className="text-3xl font-black text-white italic">R$ {total.toFixed(2).replace('.', ',')}</span>
             </div>
             
-            {checkoutStep === 'cart' ? (
-              <button 
-                onClick={() => setCheckoutStep('method_selection')}
-                className="w-full bg-[var(--neon-green)] text-black py-6 rounded-[2.5rem] font-black uppercase text-xs tracking-[0.3em] shadow-[0_0_40px_var(--neon-glow)] flex items-center justify-center gap-4 transition-all hover:scale-[1.02]"
-              >
-                {siteSettings.checkout_button_text || 'PAGAR AGORA'} <Zap className="w-5 h-5 fill-black" />
-              </button>
-            ) : (
+            {/* O botão "PAGAR AGORA" foi removido pois as opções de pagamento já estão visíveis */}
+            {/* Adicionamos um botão de "Voltar" apenas se estivermos em etapas secundárias, mas agora o fluxo é direto */}
+            {checkoutStep !== 'cart' && (
               <button 
                 onClick={() => setCheckoutStep('cart')}
                 className="w-full bg-white/5 text-gray-500 py-6 rounded-[2.5rem] font-black uppercase text-[10px] tracking-widest hover:text-white transition-colors"
               >
-                VOLTAR AO CARRINHO
+                VOLTAR AO PEDIDO
               </button>
             )}
           </div>
