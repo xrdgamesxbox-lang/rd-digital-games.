@@ -1,8 +1,9 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
   ShoppingCart, Star, Settings,
   LogOut, Edit2, Trash2, Plus, X, Loader2, Lock, Mail, UserPlus, LogIn,
-  Instagram, Facebook, AlertTriangle, CheckCircle, Zap, Palette, Image as ImageIcon, Gamepad2, Layers, Check, Wifi, WifiOff, Terminal, Copy, HelpCircle, Rocket, ShieldCheck, RefreshCcw, ExternalLink, Activity, Globe, Search, Info, Download, Box, Monitor, AlertOctagon, Wallet, MessageCircle, Save, TrendingUp, Users, ShoppingBag, Eye, Clock, Type, Send, Languages, Phone, CreditCard, Calendar, Tag, ChevronRight, Link as LinkIcon, ArrowUp, ArrowDown, UserCheck, Key, ListChecks, DollarSign
+  Instagram, Facebook, AlertTriangle, CheckCircle, Zap, Palette, Image as ImageIcon, Gamepad2, Layers, Check, Wifi, WifiOff, Terminal, Copy, HelpCircle, Rocket, ShieldCheck, RefreshCcw, ExternalLink, Activity, Globe, Search, Info, Download, Box, Monitor, AlertOctagon, Wallet, MessageCircle, Save, TrendingUp, Users, ShoppingBag, Eye, Clock, Type, Send, Languages, Phone, CreditCard, Calendar, Tag, ChevronRight, Link as LinkIcon, ArrowUp, ArrowDown, UserCheck, Key, ListChecks, DollarSign, History
 } from 'lucide-react';
 import { Game, User, CartItem, License } from './types.ts';
 import GameCard from './components/GameCard.tsx';
@@ -287,6 +288,8 @@ const App: React.FC = () => {
         const sanitizedGames = gamesData.map((g, idx) => ({
              ...g,
              is_available: g.is_available !== false, // Garante que default é true se undefined/null
+             is_parental_available: g.is_parental_available !== false, // Default true se undefined
+             is_exclusive_available: g.is_exclusive_available !== false, // Default true se undefined
              display_order: g.display_order !== null && g.display_order !== undefined ? g.display_order : idx
         }));
         setGames(sanitizedGames);
@@ -440,7 +443,8 @@ const App: React.FC = () => {
       // 2. Processar Atualizações
       if (updates.length > 0) {
          const promises = updates.map(u => 
-           supabase.from('games').update(u.updates).eq('id', u.id)
+           // Força atualização da data de modificação
+           supabase.from('games').update({ ...u.updates, updated_at: new Date().toISOString() }).eq('id', u.id)
          );
          await Promise.all(promises);
       }
@@ -453,7 +457,7 @@ const App: React.FC = () => {
         // Aplicar updates
         newGames = newGames.map(game => {
           const update = updates.find(u => u.id === game.id);
-          return update ? { ...game, ...update.updates } : game;
+          return update ? { ...game, ...update.updates, updated_at: new Date().toISOString() } : game;
         });
         
         return newGames;
@@ -464,7 +468,7 @@ const App: React.FC = () => {
       showToast("Operação em massa concluída com sucesso!");
     } catch (e: any) {
       console.error(e);
-      if (e.message?.includes('is_available') || e.message?.includes('display_order')) {
+      if (e.message?.includes('is_available') || e.message?.includes('display_order') || e.message?.includes('updated_at')) {
         showToast("ERRO DE BANCO DE DADOS: Execute o script SQL enviado para criar as colunas novas.", "error");
       } else {
         showToast("Erro ao processar edição em massa: " + e.message, "error");
@@ -499,14 +503,22 @@ const App: React.FC = () => {
 
   const handleSaveGame = async (gameData: Omit<Game, 'id'>) => {
     try {
+      const timestamp = new Date().toISOString();
+      const gameDataWithTimestamp = { ...gameData, updated_at: timestamp };
+
       if (editingGame) {
-        const { data, error } = await supabase.from('games').update(gameData).eq('id', editingGame.id).select().single();
+        const { data, error } = await supabase.from('games').update(gameDataWithTimestamp).eq('id', editingGame.id).select().single();
         if (error) throw error;
         if (data) setGames(games.map(g => g.id === editingGame.id ? data : g));
       } else {
         const nextOrder = games.length > 0 ? Math.max(...games.map(g => g.display_order || 0)) + 1 : 0;
         // Garante que is_available é true se não especificado
-        const newGameData = { ...gameData, is_available: gameData.is_available !== false };
+        const newGameData = { 
+            ...gameDataWithTimestamp, 
+            is_available: gameData.is_available !== false,
+            is_parental_available: gameData.is_parental_available !== false,
+            is_exclusive_available: gameData.is_exclusive_available !== false
+        };
         const { data, error } = await supabase.from('games').insert([{ ...newGameData, display_order: nextOrder }]).select().single();
         if (error) throw error;
         if (data) setGames([...games, data]);
@@ -515,7 +527,7 @@ const App: React.FC = () => {
       showToast('Sucesso!');
     } catch (error: any) {
       console.error(error);
-      if (error.message?.includes('is_available') || error.message?.includes('display_order')) {
+      if (error.message?.includes('is_available') || error.message?.includes('display_order') || error.message?.includes('updated_at')) {
         showToast("ERRO CRÍTICO: Banco de dados desatualizado. Execute o SQL fornecido.", 'error');
       } else {
         showToast(error.message || "Erro ao salvar", 'error');
@@ -1028,6 +1040,9 @@ const App: React.FC = () => {
                     <div className="flex items-center justify-between">
                        <div className="flex items-center gap-4">
                           <h3 className="text-xl font-black uppercase italic text-white">VITRINE E ORDEM</h3>
+                          <div className="bg-white/10 text-white px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border border-white/5">
+                             {games.length} {games.length === 1 ? 'ITEM' : 'ITENS'}
+                          </div>
                           {selectedGameIds.length > 0 && (
                             <div className="bg-[var(--neon-green)] text-black px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest animate-bounce-in">
                                {selectedGameIds.length} SELECIONADOS
@@ -1076,11 +1091,24 @@ const App: React.FC = () => {
                             <img src={game.image_url} className="w-12 h-16 rounded-xl object-cover transition-transform group-hover:scale-105" />
                             <div className="flex-grow">
                                <p className="text-[11px] text-white font-black uppercase italic line-clamp-1">{game.title}</p>
-                               <div className="flex items-center gap-2 mt-1">
-                                  <Tag className="w-3 h-3 text-[var(--neon-green)]" />
-                                  <p className="text-[8px] text-gray-500 font-black uppercase tracking-widest">{game.category}</p>
+                               <div className="flex items-center gap-2 mt-1 flex-wrap">
+                                  <div className="flex items-center gap-1.5">
+                                    <Tag className="w-3 h-3 text-[var(--neon-green)]" />
+                                    <p className="text-[8px] text-gray-500 font-black uppercase tracking-widest">{game.category}</p>
+                                  </div>
+                                  
+                                  {/* DATA DE ATUALIZAÇÃO */}
+                                  {game.updated_at && (
+                                    <>
+                                       <span className="text-gray-700 mx-1">•</span>
+                                       <p className="text-[8px] text-gray-600 font-bold uppercase flex items-center gap-1">
+                                          Atualizado: {new Date(game.updated_at).toLocaleDateString('pt-BR')}
+                                       </p>
+                                    </>
+                                  )}
+
                                   {!game.is_available && (
-                                     <span className="text-[8px] bg-red-600 text-white px-2 py-0.5 rounded-full font-black uppercase">INDISPONÍVEL</span>
+                                     <span className="text-[8px] bg-red-600 text-white px-2 py-0.5 rounded-full font-black uppercase ml-2">INDISPONÍVEL</span>
                                   )}
                                </div>
                             </div>

@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { X, Sparkles, Loader2, Save, Zap, Gamepad2, Layers, Rocket, Search, Globe, Power, PowerOff } from 'lucide-react';
+import { X, Sparkles, Loader2, Save, Zap, Gamepad2, Layers, Rocket, Search, Globe, Power, PowerOff, CheckCircle, XCircle } from 'lucide-react';
 import { Game } from '../types.ts';
 import { searchGameData } from '../services/geminiService.ts';
 
@@ -24,7 +24,9 @@ const AdminModal: React.FC<AdminModalProps> = ({ onClose, onSave, initialData })
     current_price: 0,
     image_url: '',
     is_featured: false,
-    is_available: true, // Padrão como disponível
+    is_available: true, 
+    is_parental_available: true, // Novo default
+    is_exclusive_available: true, // Novo default
     platform: 'Xbox One / Series X|S',
     category: 'jogo',
     plan_duration: '1'
@@ -40,7 +42,9 @@ const AdminModal: React.FC<AdminModalProps> = ({ onClose, onSave, initialData })
         current_price_exclusive: initialData.current_price_exclusive || 0,
         original_price: initialData.original_price || 0,
         current_price: initialData.current_price || 0,
-        is_available: initialData.is_available !== false // Se for null ou undefined, assume true
+        is_available: initialData.is_available !== false,
+        is_parental_available: initialData.is_parental_available !== false,
+        is_exclusive_available: initialData.is_exclusive_available !== false
       });
     }
   }, [initialData]);
@@ -87,6 +91,8 @@ const AdminModal: React.FC<AdminModalProps> = ({ onClose, onSave, initialData })
       image_url: String(formData.image_url).trim(),
       is_featured: Boolean(formData.is_featured),
       is_available: Boolean(formData.is_available),
+      is_parental_available: Boolean(formData.is_parental_available),
+      is_exclusive_available: Boolean(formData.is_exclusive_available),
       platform: formData.platform,
       category: formData.category
     };
@@ -182,27 +188,52 @@ const AdminModal: React.FC<AdminModalProps> = ({ onClose, onSave, initialData })
 
             {formData.category === 'jogo' ? (
               <>
-                <div className="grid grid-cols-2 gap-6 p-6 bg-white/5 rounded-3xl border border-white/5">
-                   <div className="col-span-2 text-[10px] font-black text-orange-500 uppercase tracking-widest border-b border-white/5 pb-2">CONTA PARENTAL</div>
+                <div className={`grid grid-cols-2 gap-6 p-6 rounded-3xl border transition-colors ${formData.is_parental_available ? 'bg-white/5 border-white/5' : 'bg-red-900/10 border-red-500/30'}`}>
+                   <div className="col-span-2 flex justify-between items-center border-b border-white/5 pb-2">
+                     <span className={`text-[10px] font-black uppercase tracking-widest ${formData.is_parental_available ? 'text-orange-500' : 'text-gray-500'}`}>CONTA PARENTAL</span>
+                     
+                     <label className="flex items-center gap-2 cursor-pointer">
+                        <span className={`text-[8px] font-black uppercase ${formData.is_parental_available ? 'text-[var(--neon-green)]' : 'text-red-500'}`}>
+                           {formData.is_parental_available ? 'EM ESTOQUE' : 'ESGOTADO'}
+                        </span>
+                        <div className="relative inline-flex items-center">
+                           <input type="checkbox" className="sr-only peer" checked={formData.is_parental_available} onChange={e => setFormData({...formData, is_parental_available: e.target.checked})} />
+                           <div className="w-9 h-5 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[var(--neon-green)]"></div>
+                        </div>
+                     </label>
+                   </div>
+                   
                    <div className="space-y-2">
                       <label className="text-[9px] font-black text-gray-500 uppercase">PREÇO ORIGINAL</label>
-                      <input type="number" step="0.01" value={formData.original_price_parental} onChange={e => setFormData({...formData, original_price_parental: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl p-4 text-white" />
+                      <input type="number" step="0.01" value={formData.original_price_parental} onChange={e => setFormData({...formData, original_price_parental: e.target.value})} disabled={!formData.is_parental_available} className="w-full bg-black border border-white/10 rounded-xl p-4 text-white disabled:opacity-50" />
                    </div>
                    <div className="space-y-2">
                       <label className="text-[9px] font-black text-gray-500 uppercase">PREÇO VENDA</label>
-                      <input type="number" step="0.01" value={formData.current_price_parental} onChange={e => setFormData({...formData, current_price_parental: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl p-4 text-[var(--neon-green)] font-bold" />
+                      <input type="number" step="0.01" value={formData.current_price_parental} onChange={e => setFormData({...formData, current_price_parental: e.target.value})} disabled={!formData.is_parental_available} className="w-full bg-black border border-white/10 rounded-xl p-4 text-[var(--neon-green)] font-bold disabled:opacity-50" />
                    </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-6 p-6 bg-white/5 rounded-3xl border border-white/5">
-                   <div className="col-span-2 text-[10px] font-black text-blue-500 uppercase tracking-widest border-b border-white/5 pb-2">CONTA EXCLUSIVA</div>
+                <div className={`grid grid-cols-2 gap-6 p-6 rounded-3xl border transition-colors ${formData.is_exclusive_available ? 'bg-white/5 border-white/5' : 'bg-red-900/10 border-red-500/30'}`}>
+                   <div className="col-span-2 flex justify-between items-center border-b border-white/5 pb-2">
+                     <span className={`text-[10px] font-black uppercase tracking-widest ${formData.is_exclusive_available ? 'text-blue-500' : 'text-gray-500'}`}>CONTA EXCLUSIVA</span>
+                     
+                     <label className="flex items-center gap-2 cursor-pointer">
+                        <span className={`text-[8px] font-black uppercase ${formData.is_exclusive_available ? 'text-[var(--neon-green)]' : 'text-red-500'}`}>
+                           {formData.is_exclusive_available ? 'EM ESTOQUE' : 'ESGOTADO'}
+                        </span>
+                        <div className="relative inline-flex items-center">
+                           <input type="checkbox" className="sr-only peer" checked={formData.is_exclusive_available} onChange={e => setFormData({...formData, is_exclusive_available: e.target.checked})} />
+                           <div className="w-9 h-5 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+                        </div>
+                     </label>
+                   </div>
                    <div className="space-y-2">
                       <label className="text-[9px] font-black text-gray-500 uppercase">PREÇO ORIGINAL</label>
-                      <input type="number" step="0.01" value={formData.original_price_exclusive} onChange={e => setFormData({...formData, original_price_exclusive: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl p-4 text-white" />
+                      <input type="number" step="0.01" value={formData.original_price_exclusive} onChange={e => setFormData({...formData, original_price_exclusive: e.target.value})} disabled={!formData.is_exclusive_available} className="w-full bg-black border border-white/10 rounded-xl p-4 text-white disabled:opacity-50" />
                    </div>
                    <div className="space-y-2">
                       <label className="text-[9px] font-black text-gray-500 uppercase">PREÇO VENDA</label>
-                      <input type="number" step="0.01" value={formData.current_price_exclusive} onChange={e => setFormData({...formData, current_price_exclusive: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl p-4 text-[var(--neon-green)] font-bold" />
+                      <input type="number" step="0.01" value={formData.current_price_exclusive} onChange={e => setFormData({...formData, current_price_exclusive: e.target.value})} disabled={!formData.is_exclusive_available} className="w-full bg-black border border-white/10 rounded-xl p-4 text-[var(--neon-green)] font-bold disabled:opacity-50" />
                    </div>
                 </div>
               </>

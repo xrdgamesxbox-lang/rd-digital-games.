@@ -6,9 +6,15 @@ export interface Game {
   platform: string;
   image_url: string;
   is_featured: boolean;
-  is_available?: boolean; // Novo campo
+  is_available?: boolean; // Disponibilidade Global do Jogo
+  
+  // Disponibilidade específica (Novo)
+  is_parental_available?: boolean;
+  is_exclusive_available?: boolean;
+
   category: 'jogo' | 'gamepass' | 'prevenda';
   display_order?: number;
+  updated_at?: string; // Data da última modificação
   
   // Preços para Jogos
   original_price_parental?: number;
