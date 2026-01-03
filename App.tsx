@@ -1,9 +1,8 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
   ShoppingCart, Star, Settings,
   LogOut, Edit2, Trash2, Plus, X, Loader2, Lock, Mail, UserPlus, LogIn,
-  Instagram, Facebook, AlertTriangle, CheckCircle, Zap, Palette, Image as ImageIcon, Gamepad2, Layers, Check, Wifi, WifiOff, Terminal, Copy, HelpCircle, Rocket, ShieldCheck, RefreshCcw, ExternalLink, Activity, Globe, Search, Info, Download, Box, Monitor, AlertOctagon, Wallet, MessageCircle, Save, TrendingUp, Users, ShoppingBag, Eye, Clock, Type, Send, Languages, Phone, CreditCard, Calendar, Tag, ChevronRight, Link as LinkIcon, ArrowUp, ArrowDown, UserCheck, Key, ListChecks, DollarSign, History
+  Instagram, Facebook, AlertTriangle, CheckCircle, Zap, Palette, Image as ImageIcon, Gamepad2, Layers, Check, Wifi, WifiOff, Terminal, Copy, HelpCircle, Rocket, ShieldCheck, RefreshCcw, ExternalLink, Activity, Globe, Search, Info, Download, Box, Monitor, AlertOctagon, Wallet, MessageCircle, Save, TrendingUp, Users, ShoppingBag, Eye, Clock, Type, Send, Languages, Phone, CreditCard, Calendar, Tag, ChevronRight, Link as LinkIcon, ArrowUp, ArrowDown, UserCheck, Key, ListChecks, DollarSign, History, GripVertical
 } from 'lucide-react';
 import { Game, User, CartItem, License } from './types.ts';
 import GameCard from './components/GameCard.tsx';
@@ -30,6 +29,9 @@ const App: React.FC = () => {
   const [logoError, setLogoError] = useState(false);
   const [showInfoModal, setShowInfoModal] = useState(false);
   
+  // Estados para Drag and Drop
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+
   // Estados para Bulk Edit (Edição em Massa)
   const [selectedGameIds, setSelectedGameIds] = useState<string[]>([]);
   const [showBulkPriceModal, setShowBulkPriceModal] = useState(false);
@@ -475,6 +477,44 @@ const App: React.FC = () => {
       }
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Funções para Drag and Drop
+  const handleDragStart = (e: React.DragEvent<HTMLDivElement>, index: number) => {
+    setDraggedIndex(index);
+    e.dataTransfer.effectAllowed = "move";
+    e.currentTarget.style.opacity = '0.5';
+  };
+
+  const handleDragEnd = (e: React.DragEvent<HTMLDivElement>) => {
+    e.currentTarget.style.opacity = '1';
+    setDraggedIndex(null);
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+  };
+
+  const handleDrop = async (e: React.DragEvent<HTMLDivElement>, index: number) => {
+    e.preventDefault();
+    if (draggedIndex === null || draggedIndex === index) return;
+
+    const newGames = [...games];
+    const [movedGame] = newGames.splice(draggedIndex, 1);
+    newGames.splice(index, 0, movedGame);
+
+    const updatedGames = newGames.map((g, i) => ({ ...g, display_order: i }));
+    setGames(updatedGames);
+
+    try {
+      const { error } = await supabase.from('games').upsert(updatedGames);
+      if (error) throw error;
+      showToast("Ordem atualizada com sucesso!");
+    } catch (err) {
+      console.error(err);
+      showToast("Erro ao salvar ordem no servidor.", 'error');
     }
   };
 
@@ -1072,8 +1112,21 @@ const App: React.FC = () => {
 
                     <div className="max-h-[60vh] overflow-y-auto custom-scrollbar space-y-3 pr-2">
                        {games.map((game, index) => (
-                         <div key={game.id} className={`flex items-center gap-4 bg-black/40 border p-4 rounded-3xl group transition-colors ${selectedGameIds.includes(game.id) ? 'border-[var(--neon-green)]/50 bg-[var(--neon-green)]/5' : 'border-white/5 hover:border-white/10'}`}>
+                         <div 
+                           key={game.id} 
+                           draggable={true}
+                           onDragStart={(e) => handleDragStart(e, index)}
+                           onDragEnd={handleDragEnd}
+                           onDragOver={handleDragOver}
+                           onDrop={(e) => handleDrop(e, index)}
+                           className={`flex items-center gap-4 bg-black/40 border p-4 rounded-3xl group transition-all ${selectedGameIds.includes(game.id) ? 'border-[var(--neon-green)]/50 bg-[var(--neon-green)]/5' : 'border-white/5 hover:border-white/10'} ${draggedIndex === index ? 'opacity-50 border-dashed border-[var(--neon-green)]' : ''}`}
+                         >
                             
+                            {/* ÍCONE DE ARRASTAR */}
+                            <div className="cursor-grab active:cursor-grabbing p-2 text-gray-600 hover:text-white">
+                               <GripVertical className="w-5 h-5" />
+                            </div>
+
                             {/* CHECKBOX DE SELEÇÃO */}
                             <div className="flex items-center justify-center p-2">
                                <input 
