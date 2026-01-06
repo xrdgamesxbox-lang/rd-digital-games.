@@ -1024,12 +1024,122 @@ const App: React.FC = () => {
                           <h3 className="text-[12px] font-black uppercase italic">DICIONÁRIO DO SITE</h3>
                        </div>
                        
-                       <div className="space-y-6 max-h-[500px] overflow-y-auto custom-scrollbar pr-2">
+                       <div className="space-y-8 max-h-[500px] overflow-y-auto custom-scrollbar pr-2">
+                          
+                          {/* LOGIN & GERAL */}
                           <div className="space-y-4">
-                            <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest border-b border-white/10 pb-1">COMO FUNCIONA & TIPOS DE CONTA</p>
+                            <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest border-b border-white/10 pb-1">TELA DE LOGIN & GERAL</p>
+                            <div className="space-y-1">
+                              <label className="text-[8px] font-black text-gray-600 uppercase">Título Principal</label>
+                              <input type="text" value={siteSettings.login_title || ''} onChange={e => updateSetting('login_title', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[8px] font-black text-gray-600 uppercase">Subtítulo</label>
+                              <input type="text" value={siteSettings.login_subtitle || ''} onChange={e => updateSetting('login_subtitle', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[8px] font-black text-gray-600 uppercase">Texto Botão Entrar</label>
+                              <input type="text" value={siteSettings.login_btn_text || ''} onChange={e => updateSetting('login_btn_text', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[8px] font-black text-gray-600 uppercase">Texto Rodapé</label>
+                              <input type="text" value={siteSettings.login_footer || ''} onChange={e => updateSetting('login_footer', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                            </div>
+                          </div>
+
+                          {/* HERO / CAPA */}
+                          <div className="space-y-4">
+                            <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest border-b border-white/10 pb-1">BANNER DE CAPA (HERO)</p>
+                            <div className="space-y-1">
+                              <label className="text-[8px] font-black text-gray-600 uppercase">Título Grande</label>
+                              <input type="text" value={siteSettings.hero_title || ''} onChange={e => updateSetting('hero_title', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[8px] font-black text-gray-600 uppercase">Descrição</label>
+                              <textarea rows={3} value={siteSettings.hero_description || ''} onChange={e => updateSetting('hero_description', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                            </div>
+                          </div>
+
+                          {/* COMO FUNCIONA */}
+                          <div className="space-y-4">
+                            <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest border-b border-white/10 pb-1">SEÇÃO COMO FUNCIONA</p>
                             <div className="space-y-1">
                               <label className="text-[8px] font-black text-gray-600 uppercase">Título Seção</label>
                               <input type="text" value={siteSettings.how_it_works_title || ''} onChange={e => updateSetting('how_it_works_title', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[8px] font-black text-gray-600 uppercase">Subtítulo Seção</label>
+                              <input type="text" value={siteSettings.how_it_works_subtitle || ''} onChange={e => updateSetting('how_it_works_subtitle', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[8px] font-black text-gray-600 uppercase">Texto Botão</label>
+                              <input type="text" value={siteSettings.how_it_works_btn || ''} onChange={e => updateSetting('how_it_works_btn', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[8px] font-black text-gray-600 uppercase">Explicação Conta Parental (Modal)</label>
+                              <textarea rows={4} value={siteSettings.text_parental || ''} onChange={e => updateSetting('text_parental', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[8px] font-black text-gray-600 uppercase">Explicação Conta Exclusiva (Modal)</label>
+                              <textarea rows={4} value={siteSettings.text_exclusive || ''} onChange={e => updateSetting('text_exclusive', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                            </div>
+                          </div>
+
+                          {/* VITRINES E CATÁLOGO */}
+                          <div className="space-y-4">
+                            <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest border-b border-white/10 pb-1">VITRINES E TÍTULOS</p>
+                            <div className="space-y-1">
+                              <label className="text-[8px] font-black text-gray-600 uppercase">Título Game Pass</label>
+                              <input type="text" value={siteSettings.gamepass_title || ''} onChange={e => updateSetting('gamepass_title', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[8px] font-black text-gray-600 uppercase">Subtítulo Game Pass</label>
+                              <input type="text" value={siteSettings.gamepass_subtitle || ''} onChange={e => updateSetting('gamepass_subtitle', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[8px] font-black text-gray-600 uppercase">Título Pré-Venda</label>
+                              <input type="text" value={siteSettings.prevenda_title || ''} onChange={e => updateSetting('prevenda_title', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[8px] font-black text-gray-600 uppercase">Subtítulo Pré-Venda</label>
+                              <input type="text" value={siteSettings.prevenda_subtitle || ''} onChange={e => updateSetting('prevenda_subtitle', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[8px] font-black text-gray-600 uppercase">Título Catálogo Geral</label>
+                              <input type="text" value={siteSettings.catalog_title || ''} onChange={e => updateSetting('catalog_title', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                            </div>
+                          </div>
+
+                          {/* NAVEGAÇÃO E BOTÕES */}
+                          <div className="space-y-4">
+                            <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest border-b border-white/10 pb-1">NAVEGAÇÃO, ABAS E CARRINHO</p>
+                            <div className="space-y-1">
+                              <label className="text-[8px] font-black text-gray-600 uppercase">Texto Aba Jogos</label>
+                              <input type="text" value={siteSettings.tab_games || ''} onChange={e => updateSetting('tab_games', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[8px] font-black text-gray-600 uppercase">Texto Aba Game Pass</label>
+                              <input type="text" value={siteSettings.tab_gamepass || ''} onChange={e => updateSetting('tab_gamepass', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[8px] font-black text-gray-600 uppercase">Texto Aba Pré-Venda</label>
+                              <input type="text" value={siteSettings.tab_preorder || ''} onChange={e => updateSetting('tab_preorder', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[8px] font-black text-gray-600 uppercase">Placeholder Busca</label>
+                              <input type="text" value={siteSettings.search_placeholder || ''} onChange={e => updateSetting('search_placeholder', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[8px] font-black text-gray-600 uppercase">Título Carrinho</label>
+                              <input type="text" value={siteSettings.cart_title || ''} onChange={e => updateSetting('cart_title', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[8px] font-black text-gray-600 uppercase">Texto Carrinho Vazio</label>
+                              <input type="text" value={siteSettings.cart_empty_text || ''} onChange={e => updateSetting('cart_empty_text', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[8px] font-black text-gray-600 uppercase">Texto Botão Checkout</label>
+                              <input type="text" value={siteSettings.checkout_button_text || ''} onChange={e => updateSetting('checkout_button_text', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
                             </div>
                           </div>
                        </div>
