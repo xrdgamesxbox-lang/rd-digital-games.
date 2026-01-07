@@ -9,6 +9,7 @@ import GameCard from './components/GameCard.tsx';
 import AdminModal from './components/AdminModal.tsx';
 import BulkPriceModal from './components/BulkPriceModal.tsx';
 import CartDrawer from './components/CartDrawer.tsx';
+import ProductPage from './components/ProductPage.tsx'; // Importado
 import { supabase } from './services/supabaseClient.ts';
 import { searchGameData } from './services/geminiService.ts';
 
@@ -16,6 +17,7 @@ const ADMIN_EMAIL = 'xrdgamesxbox@gmail.com';
 
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
+  const [showAuthModal, setShowAuthModal] = useState(false);
   const [isAdminPanelOpen, setIsAdminPanelOpen] = useState(false);
   const [activeAdminTab, setActiveAdminTab] = useState<'dashboard' | 'products' | 'licenses'>('dashboard');
   const [isSignUpMode, setIsSignUpMode] = useState(false);
@@ -29,6 +31,9 @@ const App: React.FC = () => {
   const [logoError, setLogoError] = useState(false);
   const [showInfoModal, setShowInfoModal] = useState(false);
   
+  // Estado para Produto Aberto (Detalhes)
+  const [selectedProduct, setSelectedProduct] = useState<Game | null>(null);
+
   // Estados para Drag and Drop
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
 
@@ -123,6 +128,7 @@ const App: React.FC = () => {
 
   const [games, setGames] = useState<Game[]>([]);
 
+  // Carrega dados iniciais e usuário
   useEffect(() => {
     checkUser();
     fetchInitialData();
@@ -142,7 +148,23 @@ const App: React.FC = () => {
       showToast('O pagamento foi cancelado.', 'error');
       window.history.replaceState({}, document.title, window.location.pathname);
     }
+
+    // Escuta o botão voltar do navegador para fechar o produto
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
   }, []);
+
+  // Verifica URL params para abrir produto direto ao carregar (deeplinking)
+  useEffect(() => {
+    if (games.length > 0) {
+      const params = new URLSearchParams(window.location.search);
+      const gameId = params.get('game');
+      if (gameId) {
+        const foundGame = games.find(g => g.id === gameId);
+        if (foundGame) setSelectedProduct(foundGame);
+      }
+    }
+  }, [games]);
 
   useEffect(() => {
     localStorage.setItem('rd_cart', JSON.stringify(cart));
@@ -162,6 +184,29 @@ const App: React.FC = () => {
     };
     root.style.setProperty('--neon-glow', hexToRgba(siteSettings.primary_color, 0.4));
   }, [siteSettings]);
+
+  // Handle Browser Back Button
+  const handlePopState = () => {
+    const params = new URLSearchParams(window.location.search);
+    const gameId = params.get('game');
+    if (!gameId) {
+      setSelectedProduct(null);
+    }
+  };
+
+  // Handle Open Product Page (Updates URL)
+  const handleOpenProduct = (game: Game) => {
+    setSelectedProduct(game);
+    // Atualiza a URL sem recarregar a página
+    const newUrl = `${window.location.pathname}?game=${game.id}`;
+    window.history.pushState({ path: newUrl }, '', newUrl);
+  };
+
+  // Handle Close Product Page (Restores URL)
+  const handleCloseProduct = () => {
+    setSelectedProduct(null);
+    window.history.pushState({ path: window.location.pathname }, '', window.location.pathname);
+  };
 
   // Função para verificar preço por link
   const handleCheckPrice = async () => {
@@ -235,6 +280,13 @@ const App: React.FC = () => {
   };
 
   const addToCart = async (game: Game, type: 'parental' | 'exclusiva' | 'gamepass' | 'prevenda', price: number) => {
+    // VERIFICAÇÃO DE SEGURANÇA: OBRIGATÓRIO ESTAR LOGADO
+    if (!user) {
+      setShowAuthModal(true);
+      showToast("ATENÇÃO: Para comprar você precisa criar uma conta!", "error");
+      return;
+    }
+
     const newItem: CartItem = {
       cartId: Math.random().toString(36).substr(2, 9),
       gameId: game.id,
@@ -247,6 +299,11 @@ const App: React.FC = () => {
     setCart(newCart);
     setIsCartOpen(true);
     showToast(`${game.title} adicionado!`);
+    
+    // Fechar página do produto se estiver aberta
+    if (selectedProduct) {
+       handleCloseProduct();
+    }
 
     await supabase.from('cart_activity').insert([{
       items: newCart,
@@ -264,6 +321,7 @@ const App: React.FC = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         setUser({ id: user.id, email: user.email!, isAdmin: user.email === ADMIN_EMAIL });
+        setShowAuthModal(false); // Fecha o modal se o usuário já estiver logado
       }
     } catch (e) { console.error(e); }
     setLoading(false);
@@ -324,6 +382,7 @@ const App: React.FC = () => {
         if (error) throw error;
         if (data.user) {
           setUser({ id: data.user.id, email: data.user.email!, isAdmin: data.user.email === ADMIN_EMAIL });
+          setShowAuthModal(false); // Fecha o modal após login com sucesso
         }
       }
     } catch (error: any) {
@@ -615,59 +674,18 @@ const App: React.FC = () => {
 
   if (loading) return <div className="min-h-screen flex items-center justify-center bg-black"><Loader2 className="w-12 h-12 text-[var(--neon-green)] animate-spin" /></div>;
 
-  if (!user) {
-    return (
-      <div className="min-h-screen bg-[var(--bg-dark)] flex items-center justify-center p-4 relative overflow-hidden bg-grid">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[var(--neon-green)]/5 blur-[120px] rounded-full pointer-events-none"></div>
-        <div className="relative w-full max-w-[400px] animate-bounce-in">
-          <div className="text-center mb-10">
-             {siteSettings.logo_url && !logoError ? (
-               <img src={siteSettings.logo_url} onError={() => setLogoError(true)} className="h-28 w-auto object-contain mx-auto mb-4 drop-shadow-[0_0_20px_var(--neon-glow)]" />
-             ) : (
-               <div className="w-16 h-16 bg-[var(--neon-green)] rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-[0_0_30px_var(--neon-glow)] rotate-3">
-                  <Zap className="w-8 h-8 text-black fill-black" />
-               </div>
-             )}
-             <h1 className="text-3xl font-black italic uppercase tracking-tighter neon-text-glow text-white">{siteSettings.login_title || 'RD DIGITAL'}</h1>
-             <p className="text-[9px] text-gray-500 font-black uppercase tracking-[0.4em] mt-1">{siteSettings.login_subtitle || 'Sua conta de jogos oficial'}</p>
-          </div>
-          <div className="bg-white/[0.03] backdrop-blur-2xl border border-white/10 p-8 rounded-[2.5rem] shadow-2xl">
-            {needsEmailConfirmation ? (
-              <div className="text-center space-y-6">
-                 <Mail className="w-12 h-12 text-[var(--neon-green)] mx-auto animate-pulse" />
-                 <h2 className="text-xl font-black text-white uppercase italic">CONFIRME SEU E-MAIL!</h2>
-                 <p className="text-gray-400 text-[10px] uppercase font-bold tracking-widest leading-relaxed">Verifique o link enviado para ativar sua conta.</p>
-                 <button onClick={() => setNeedsEmailConfirmation(false)} className="w-full bg-[var(--neon-green)] text-black py-4 rounded-2xl font-black text-xs">ENTENDI</button>
-              </div>
-            ) : (
-              <form onSubmit={handleAuth} className="space-y-4">
-                <div className="space-y-1">
-                  <label className="text-[8px] font-black text-gray-500 uppercase ml-2 tracking-widest">E-mail de acesso</label>
-                  <input required type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full bg-black/40 border border-white/5 rounded-2xl py-4 px-6 text-white text-sm focus:border-[var(--neon-green)]/50 outline-none transition-all" placeholder="nome@exemplo.com" />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[8px] font-black text-gray-500 uppercase ml-2 tracking-widest">Sua senha</label>
-                  <input required type="password" value={password} onChange={e => setPassword(e.target.value)} className="w-full bg-black/40 border border-white/5 rounded-2xl py-4 px-6 text-white text-sm focus:border-[var(--neon-green)]/50 outline-none transition-all" placeholder="••••••••" />
-                </div>
-                <button type="submit" disabled={authLoading} className="w-full bg-[var(--neon-green)] text-black py-4 mt-2 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-[0_10px_30px_var(--neon-glow)] hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3">
-                  {authLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <>{siteSettings.login_btn_text || 'ACESSAR AGORA'} <LogIn className="w-4 h-4" /></>}
-                </button>
-                <div className="pt-4 text-center border-t border-white/5 mt-6">
-                  <button type="button" onClick={() => setIsSignUpMode(!isSignUpMode)} className="text-[9px] font-black uppercase text-gray-500 hover:text-white transition-colors tracking-widest">
-                    {isSignUpMode ? 'JÁ TENHO UMA CONTA' : 'NÃO TEM CONTA? CADASTRE-SE'}
-                  </button>
-                </div>
-              </form>
-            )}
-          </div>
-          <p className="text-center text-[8px] text-gray-600 font-bold uppercase tracking-[0.2em] mt-8">{siteSettings.login_footer || 'Direitos Reservados'}</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="flex flex-col min-h-screen" style={{ color: siteSettings.text_color }}>
+      
+      {/* PÁGINA DE PRODUTO INDIVIDUAL (ROTEAMENTO) */}
+      {selectedProduct && (
+        <ProductPage 
+          game={selectedProduct} 
+          onClose={handleCloseProduct} 
+          onAddToCart={addToCart} 
+        />
+      )}
+
       {toast && (
         <div className="fixed top-24 right-8 z-[300] animate-bounce-in">
            <div className={`px-6 py-4 rounded-2xl border font-black text-[10px] uppercase tracking-widest backdrop-blur-xl ${toast.type === 'error' ? 'bg-red-600/10 border-red-600/20 text-red-500' : 'bg-[var(--neon-green)]/10 border-[var(--neon-green)]/20 text-[var(--neon-green)]'}`}>
@@ -678,7 +696,7 @@ const App: React.FC = () => {
 
       {/* Navbar */}
       <nav className="sticky top-0 z-50 bg-[var(--bg-dark)]/90 backdrop-blur-xl border-b border-white/5 px-8 h-24 flex items-center justify-between">
-        <div className="flex items-center gap-5">
+        <div className="flex items-center gap-5 cursor-pointer" onClick={() => window.scrollTo(0,0)}>
           {siteSettings.logo_url && !logoError ? (
             <img src={siteSettings.logo_url} onError={() => setLogoError(true)} className="h-14 w-auto object-contain drop-shadow-[0_0_10px_var(--neon-glow)]" />
           ) : (
@@ -691,8 +709,17 @@ const App: React.FC = () => {
             <ShoppingCart className="w-5 h-5" />
             {cart.length > 0 && <span className="absolute -top-1 -right-1 bg-[var(--neon-green)] text-black text-[9px] font-black w-6 h-6 rounded-full flex items-center justify-center border-2 border-[var(--bg-dark)]">{cart.length}</span>}
           </button>
-          {user.isAdmin && <button onClick={() => setIsAdminPanelOpen(true)} className="bg-[var(--neon-green)] text-black px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest">ADM</button>}
-          <button onClick={handleLogout} className="p-4 bg-white/5 rounded-2xl text-gray-500 hover:text-red-500 transition-all"><LogOut className="w-5 h-5" /></button>
+          
+          {user ? (
+            <>
+               {user.isAdmin && <button onClick={() => setIsAdminPanelOpen(true)} className="bg-[var(--neon-green)] text-black px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest">ADM</button>}
+               <button onClick={handleLogout} className="p-4 bg-white/5 rounded-2xl text-gray-500 hover:text-red-500 transition-all"><LogOut className="w-5 h-5" /></button>
+            </>
+          ) : (
+             <button onClick={() => setShowAuthModal(true)} className="bg-[var(--neon-green)] text-black px-6 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 hover:scale-105 transition-transform shadow-[0_0_20px_var(--neon-glow)]">
+                <LogIn className="w-4 h-4" /> ENTRAR / CRIAR CONTA
+             </button>
+          )}
         </div>
       </nav>
 
@@ -748,7 +775,7 @@ const App: React.FC = () => {
                            <div className="flex items-center gap-4 justify-center md:justify-start">
                               <div className="text-3xl font-black text-white italic">R$ {priceCheckResult.game?.current_price_parental?.toFixed(2)}</div>
                               <button 
-                                onClick={() => addToCart(priceCheckResult.game!, 'parental', priceCheckResult.game!.current_price_parental!)}
+                                onClick={() => handleOpenProduct(priceCheckResult.game!)}
                                 className="bg-[var(--neon-green)] text-black px-6 py-3 rounded-xl font-black uppercase text-[9px] tracking-widest"
                               >
                                 COMPRAR AGORA
@@ -850,7 +877,7 @@ const App: React.FC = () => {
               <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-12">
                  {gamepassGames.map(game => (
                    <div key={game.id} className="relative group">
-                     <GameCard game={game} onBuy={addToCart} />
+                     <GameCard game={game} onOpenPage={handleOpenProduct} />
                    </div>
                  ))}
               </div>
@@ -870,7 +897,7 @@ const App: React.FC = () => {
            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-12">
               {prevendaGames.map(game => (
                 <div key={game.id} className="relative group">
-                  <GameCard game={game} onBuy={addToCart} />
+                  <GameCard game={game} onOpenPage={handleOpenProduct} />
                 </div>
               ))}
            </div>
@@ -904,11 +931,11 @@ const App: React.FC = () => {
            <section className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-12 pb-48">
              {filteredCatalog.map(game => (
                <div key={game.id} className="relative group">
-                 <GameCard game={game} onBuy={addToCart} />
-                 {user.isAdmin && (
+                 <GameCard game={game} onOpenPage={handleOpenProduct} />
+                 {user?.isAdmin && (
                   <div className="absolute top-4 right-4 z-40 flex gap-2">
-                    <button onClick={() => {setEditingGame(game); setShowAdminModal(true)}} className="p-3 bg-blue-600 rounded-2xl text-white hover:scale-105 transition-transform"><Edit2 className="w-4 h-4"/></button>
-                    <button onClick={() => setGameToDelete(game.id)} className="p-3 bg-red-600 rounded-2xl text-white hover:scale-105 transition-transform"><Trash2 className="w-4 h-4"/></button>
+                    <button onClick={(e) => { e.stopPropagation(); setEditingGame(game); setShowAdminModal(true); }} className="p-3 bg-blue-600 rounded-2xl text-white hover:scale-105 transition-transform"><Edit2 className="w-4 h-4"/></button>
+                    <button onClick={(e) => { e.stopPropagation(); setGameToDelete(game.id); }} className="p-3 bg-red-600 rounded-2xl text-white hover:scale-105 transition-transform"><Trash2 className="w-4 h-4"/></button>
                   </div>
                  )}
                </div>
@@ -921,6 +948,66 @@ const App: React.FC = () => {
            </div>
          )}
       </div>
+
+      {/* MODAL DE LOGIN (NOVA IMPLEMENTAÇÃO) */}
+      {showAuthModal && (
+        <div className="fixed inset-0 z-[1000] bg-black/95 backdrop-blur-md flex items-center justify-center p-4">
+           <div className="relative w-full max-w-[400px] animate-bounce-in">
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[var(--neon-green)]/5 blur-[120px] rounded-full pointer-events-none"></div>
+              
+              <div className="text-center mb-10">
+                 {siteSettings.logo_url && !logoError ? (
+                   <img src={siteSettings.logo_url} onError={() => setLogoError(true)} className="h-28 w-auto object-contain mx-auto mb-4 drop-shadow-[0_0_20px_var(--neon-glow)]" />
+                 ) : (
+                   <div className="w-16 h-16 bg-[var(--neon-green)] rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-[0_0_30px_var(--neon-glow)] rotate-3">
+                      <Zap className="w-8 h-8 text-black fill-black" />
+                   </div>
+                 )}
+                 <h1 className="text-3xl font-black italic uppercase tracking-tighter neon-text-glow text-white">{siteSettings.login_title || 'RD DIGITAL'}</h1>
+                 <p className="text-[9px] text-gray-500 font-black uppercase tracking-[0.4em] mt-1">{siteSettings.login_subtitle || 'Sua conta de jogos oficial'}</p>
+                 
+                 {/* AVISO IMPORTANTE */}
+                 <div className="mt-6 bg-orange-600/10 border border-orange-500/20 rounded-2xl p-4 flex items-center gap-3 text-left">
+                    <AlertTriangle className="w-6 h-6 text-orange-500 flex-shrink-0" />
+                    <p className="text-[9px] text-orange-200 font-bold uppercase leading-relaxed">Atenção: Para comprar, é obrigatório criar uma conta ou fazer login.</p>
+                 </div>
+              </div>
+
+              <div className="bg-white/[0.03] backdrop-blur-2xl border border-white/10 p-8 rounded-[2.5rem] shadow-2xl relative">
+                <button onClick={() => setShowAuthModal(false)} className="absolute top-6 right-6 text-gray-500 hover:text-white"><X className="w-5 h-5" /></button>
+                
+                {needsEmailConfirmation ? (
+                  <div className="text-center space-y-6">
+                     <Mail className="w-12 h-12 text-[var(--neon-green)] mx-auto animate-pulse" />
+                     <h2 className="text-xl font-black text-white uppercase italic">CONFIRME SEU E-MAIL!</h2>
+                     <p className="text-gray-400 text-[10px] uppercase font-bold tracking-widest leading-relaxed">Verifique o link enviado para ativar sua conta.</p>
+                     <button onClick={() => setNeedsEmailConfirmation(false)} className="w-full bg-[var(--neon-green)] text-black py-4 rounded-2xl font-black text-xs">ENTENDI</button>
+                  </div>
+                ) : (
+                  <form onSubmit={handleAuth} className="space-y-4">
+                    <div className="space-y-1">
+                      <label className="text-[8px] font-black text-gray-500 uppercase ml-2 tracking-widest">E-mail de acesso</label>
+                      <input required type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full bg-black/40 border border-white/5 rounded-2xl py-4 px-6 text-white text-sm focus:border-[var(--neon-green)]/50 outline-none transition-all" placeholder="nome@exemplo.com" />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[8px] font-black text-gray-500 uppercase ml-2 tracking-widest">Sua senha</label>
+                      <input required type="password" value={password} onChange={e => setPassword(e.target.value)} className="w-full bg-black/40 border border-white/5 rounded-2xl py-4 px-6 text-white text-sm focus:border-[var(--neon-green)]/50 outline-none transition-all" placeholder="••••••••" />
+                    </div>
+                    <button type="submit" disabled={authLoading} className="w-full bg-[var(--neon-green)] text-black py-4 mt-2 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-[0_10px_30px_var(--neon-glow)] hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3">
+                      {authLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <>{isSignUpMode ? 'CRIAR CONTA' : (siteSettings.login_btn_text || 'ACESSAR AGORA')} <LogIn className="w-4 h-4" /></>}
+                    </button>
+                    <div className="pt-4 text-center border-t border-white/5 mt-6">
+                      <button type="button" onClick={() => setIsSignUpMode(!isSignUpMode)} className="text-[9px] font-black uppercase text-gray-500 hover:text-white transition-colors tracking-widest">
+                        {isSignUpMode ? 'JÁ TENHO UMA CONTA' : 'NÃO TEM CONTA? CADASTRE-SE'}
+                      </button>
+                    </div>
+                  </form>
+                )}
+              </div>
+              <p className="text-center text-[8px] text-gray-600 font-bold uppercase tracking-[0.2em] mt-8">{siteSettings.login_footer || 'Direitos Reservados'}</p>
+           </div>
+        </div>
+      )}
 
       {/* ADM PANEL INTEGRAL */}
       {isAdminPanelOpen && (
@@ -1483,7 +1570,7 @@ const App: React.FC = () => {
         onRemove={removeFromCart} 
         onClear={() => setCart([])} 
         siteSettings={siteSettings}
-        customerEmail={user.email}
+        customerEmail={user?.email}
       />
 
       {gameToDelete && (

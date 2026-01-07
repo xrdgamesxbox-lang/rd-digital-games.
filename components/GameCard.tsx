@@ -1,33 +1,25 @@
-
 import React, { useState, useEffect } from 'react';
-import { ShoppingCart, AlertCircle, Zap, ShieldCheck, UserCheck, Calendar, Users, UserPlus, Rocket, Ban } from 'lucide-react';
+import { ShoppingCart, AlertCircle, Zap, ShieldCheck, UserCheck, Calendar, Users, UserPlus, Rocket, Ban, Eye } from 'lucide-react';
 import { Game } from '../types.ts';
 
 interface GameCardProps {
   game: Game;
-  onBuy?: (game: Game, type: 'parental' | 'exclusiva' | 'gamepass' | 'prevenda', price: number) => void;
+  // Alterado: agora passamos onOpenPage em vez de onBuy direto para o card (embora o app ainda gerencie isso)
+  onOpenPage?: (game: Game) => void;
+  onBuy?: (game: Game, type: 'parental' | 'exclusiva' | 'gamepass' | 'prevenda', price: number) => void; 
 }
 
-const GameCard: React.FC<GameCardProps> = ({ game, onBuy }) => {
+const GameCard: React.FC<GameCardProps> = ({ game, onOpenPage, onBuy }) => {
   const [imageError, setImageError] = useState(false);
   
-  // Lógica de estoque
+  // Lógica de estoque apenas para mostrar preço "A partir de"
   const parentalStock = game.is_parental_available !== false;
   const exclusiveStock = game.is_exclusive_available !== false;
   
-  // Se Parental estiver esgotada, tenta mudar o padrão para Exclusiva
+  // Default visual
   const [accountType, setAccountType] = useState<'parental' | 'exclusiva'>(
     parentalStock ? 'parental' : 'exclusiva'
   );
-
-  // Efeito para corrigir a seleção caso a disponibilidade mude
-  useEffect(() => {
-    if (!parentalStock && exclusiveStock) {
-      setAccountType('exclusiva');
-    } else if (parentalStock && !exclusiveStock) {
-      setAccountType('parental');
-    }
-  }, [parentalStock, exclusiveStock]);
 
   const handleImageError = () => setImageError(true);
 
@@ -35,7 +27,6 @@ const GameCard: React.FC<GameCardProps> = ({ game, onBuy }) => {
   const isPreOrder = game.category === 'prevenda';
   const isUnavailable = game.is_available === false;
   
-  // Verifica se a opção ATUALMENTE selecionada está disponível
   const isSelectionAvailable = isGamePass || isPreOrder 
     ? !isUnavailable 
     : (accountType === 'parental' ? parentalStock : exclusiveStock);
@@ -50,14 +41,18 @@ const GameCard: React.FC<GameCardProps> = ({ game, onBuy }) => {
 
   const discount = originalPrice > 0 ? Math.round(((originalPrice - currentPrice) / originalPrice) * 100) : 0;
 
-  const handleAddToCart = () => {
-    if (onBuy && !isUnavailable && isSelectionAvailable) {
-      onBuy(game, game.category === 'jogo' ? accountType : game.category, currentPrice);
+  // Função principal ao clicar no CARD ou no BOTÃO
+  const handleOpen = () => {
+    if (onOpenPage) {
+      onOpenPage(game);
     }
   };
 
   return (
-    <div className={`relative flex flex-col bg-[#070709] rounded-[2rem] md:rounded-[3rem] overflow-hidden border ${game.is_featured ? 'border-[var(--neon-green)]/40 ring-1 ring-[var(--neon-green)]/10' : 'border-white/5'} transition-all hover:-translate-y-3 group shadow-[0_20px_50px_rgba(0,0,0,0.5)] hover:shadow-[0_20px_60px_var(--neon-glow)]`}>
+    <div 
+      onClick={handleOpen}
+      className={`relative flex flex-col bg-[#070709] rounded-[2rem] md:rounded-[3rem] overflow-hidden border ${game.is_featured ? 'border-[var(--neon-green)]/40 ring-1 ring-[var(--neon-green)]/10' : 'border-white/5'} transition-all hover:-translate-y-3 group shadow-[0_20px_50px_rgba(0,0,0,0.5)] hover:shadow-[0_20px_60px_var(--neon-glow)] cursor-pointer`}
+    >
       
       {/* Overlay de Indisponível (Global) */}
       {isUnavailable && (
@@ -120,39 +115,29 @@ const GameCard: React.FC<GameCardProps> = ({ game, onBuy }) => {
           {game.title}
         </h3>
 
+        {/* Visual apenas, clique controlado pelo card pai */}
         {game.category === 'jogo' && (
           <div className={`flex gap-1 md:gap-2 mb-3 md:mb-4 bg-white/5 p-1 rounded-xl md:rounded-2xl border border-white/5 ${isUnavailable ? 'opacity-50 pointer-events-none' : ''}`}>
-             <button 
-                onClick={() => parentalStock && setAccountType('parental')}
-                disabled={!parentalStock}
-                className={`flex-1 py-1.5 md:py-2 px-2 md:px-3 rounded-lg md:rounded-xl text-[7px] md:text-[8px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-1 relative overflow-hidden ${
+             <div 
+                className={`flex-1 py-1.5 md:py-2 px-2 md:px-3 rounded-lg md:rounded-xl text-[7px] md:text-[8px] font-black uppercase tracking-widest flex items-center justify-center gap-1 ${
                   !parentalStock 
-                    ? 'text-gray-600 bg-white/5 cursor-not-allowed opacity-50' 
-                    : (accountType === 'parental' ? 'bg-orange-600 text-white shadow-lg' : 'text-gray-500 hover:text-white')
+                    ? 'text-gray-600 bg-white/5 opacity-50' 
+                    : (accountType === 'parental' ? 'bg-orange-600 text-white' : 'text-gray-500')
                 }`}
              >
                 <Users className="w-2.5 h-2.5 md:w-3 md:h-3" /> <span className="hidden sm:inline">Parental</span><span className="sm:hidden">Par.</span>
-                {!parentalStock && <div className="absolute inset-0 bg-black/50 flex items-center justify-center text-[6px] md:text-[7px] text-red-500 transform -rotate-6 border border-red-900/50">ESGOTADO</div>}
-             </button>
-             <button 
-                onClick={() => exclusiveStock && setAccountType('exclusiva')}
-                disabled={!exclusiveStock}
-                className={`flex-1 py-1.5 md:py-2 px-2 md:px-3 rounded-lg md:rounded-xl text-[7px] md:text-[8px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-1 relative overflow-hidden ${
+             </div>
+             <div 
+                className={`flex-1 py-1.5 md:py-2 px-2 md:px-3 rounded-lg md:rounded-xl text-[7px] md:text-[8px] font-black uppercase tracking-widest flex items-center justify-center gap-1 ${
                   !exclusiveStock 
-                    ? 'text-gray-600 bg-white/5 cursor-not-allowed opacity-50' 
-                    : (accountType === 'exclusiva' ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-500 hover:text-white')
+                    ? 'text-gray-600 bg-white/5 opacity-50' 
+                    : (accountType === 'exclusiva' ? 'bg-blue-600 text-white' : 'text-gray-500')
                 }`}
              >
                 <UserPlus className="w-2.5 h-2.5 md:w-3 md:h-3" /> <span className="hidden sm:inline">Exclusiva</span><span className="sm:hidden">Exc.</span>
-                {!exclusiveStock && <div className="absolute inset-0 bg-black/50 flex items-center justify-center text-[6px] md:text-[7px] text-red-500 transform -rotate-6 border border-red-900/50">ESGOTADO</div>}
-             </button>
+             </div>
           </div>
         )}
-
-        <div className="flex items-center gap-1.5 md:gap-2 mb-4 md:mb-6 text-[8px] md:text-[9px] font-bold text-gray-500 uppercase tracking-widest">
-          {isPreOrder ? <Rocket className="w-3 h-3 md:w-3.5 md:h-3.5 text-orange-500" /> : <ShieldCheck className={`w-3 h-3 md:w-3.5 md:h-3.5 ${isUnavailable || !isSelectionAvailable ? 'text-gray-600' : 'text-[var(--neon-green)]'}`} />}
-          <span className="line-clamp-1">{isPreOrder ? 'Liberação no lançamento' : 'Joga no seu próprio perfil'}</span>
-        </div>
 
         <div className="mt-auto space-y-3 md:space-y-4">
           {!isUnavailable ? (
@@ -174,12 +159,8 @@ const GameCard: React.FC<GameCardProps> = ({ game, onBuy }) => {
                       {isSelectionAvailable ? `R$${currentPrice.toFixed(2).replace('.', ',')}` : '---'}
                     </div>
                     <div className={`text-[8px] md:text-[9px] font-black uppercase tracking-widest md:tracking-[0.4em] mt-2 md:mt-3 opacity-80 ${isPreOrder ? 'text-orange-400' : 'text-[var(--neon-green)]'}`}>
-                      {isPreOrder ? 'PRÉ-VENDA ATIVA' : 'ENTREGA IMEDIATA'}
+                      {isPreOrder ? 'PRÉ-VENDA ATIVA' : 'VER DETALHES'}
                     </div>
-                  </div>
-                  
-                  <div className={`p-2.5 md:p-4 bg-white/5 rounded-xl md:rounded-2xl border border-white/5 group-hover:bg-white/10 transition-all ${isPreOrder ? 'group-hover:border-orange-500/40' : 'group-hover:border-[var(--neon-green)]/40'}`}>
-                     {isPreOrder ? <Rocket className="w-5 h-5 md:w-6 md:h-6 text-gray-500 group-hover:text-orange-500" /> : (isGamePass ? <Calendar className="w-5 h-5 md:w-6 md:h-6 text-gray-500 group-hover:text-[var(--neon-green)]" /> : <UserCheck className="w-5 h-5 md:w-6 md:h-6 text-gray-500 group-hover:text-[var(--neon-green)]" />)}
                   </div>
                 </div>
              </>
@@ -191,14 +172,12 @@ const GameCard: React.FC<GameCardProps> = ({ game, onBuy }) => {
           )}
 
           <button 
-            disabled={isUnavailable || !isSelectionAvailable}
-            onClick={handleAddToCart}
             className={`w-full py-4 md:py-5 rounded-[1rem] md:rounded-[1.5rem] font-black text-[10px] md:text-xs uppercase tracking-[0.2em] md:tracking-[0.3em] flex items-center justify-center gap-2 md:gap-4 transition-all h-12 md:h-16 
               ${isUnavailable || !isSelectionAvailable
-                  ? 'bg-red-900/20 text-red-700 border border-red-900/30 cursor-not-allowed' 
+                  ? 'bg-red-900/20 text-red-700 border border-red-900/30' 
                   : (isPreOrder 
-                      ? 'bg-orange-600 text-white shadow-[0_15px_30px_rgba(234,88,12,0.15)] active:scale-95' 
-                      : 'bg-[var(--neon-green)] text-[var(--bg-dark)] shadow-[0_15px_30px_rgba(var(--neon-glow),0.15)] active:scale-95'
+                      ? 'bg-orange-600 text-white shadow-[0_15px_30px_rgba(234,88,12,0.15)] group-active:scale-95' 
+                      : 'bg-white/10 text-white group-hover:bg-[var(--neon-green)] group-hover:text-black group-active:scale-95'
                     )
               }`}
           >
@@ -208,8 +187,8 @@ const GameCard: React.FC<GameCardProps> = ({ game, onBuy }) => {
                <>OPÇÃO ESGOTADA</>
             ) : (
                <>
-                  <ShoppingCart className="w-4 h-4 md:w-5 md:h-5" />
-                  {isPreOrder ? 'RESERVAR' : (accountType === 'exclusiva' && !isGamePass ? 'COMPRAR' : 'AO CARRINHO')}
+                  <Eye className="w-4 h-4 md:w-5 md:h-5" />
+                  {isPreOrder ? 'RESERVAR' : 'VER PRODUTO'}
                </>
             )}
           </button>
