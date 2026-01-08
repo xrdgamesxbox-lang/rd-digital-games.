@@ -1643,6 +1643,21 @@ const App: React.FC = () => {
            </div>
         </div>
       )}
+
+      {/* BOTÃO FLUTUANTE WHATSAPP (APENAS LOGADO) */}
+      {user && (
+        <a 
+          href={`https://wa.me/${siteSettings.whatsapp_number}?text=${encodeURIComponent("Olá RD Digital! Sou cliente cadastrado e preciso de ajuda.")}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="fixed bottom-6 right-6 z-40 bg-[#25D366] text-white p-4 rounded-full shadow-[0_0_30px_rgba(37,211,102,0.4)] hover:scale-110 active:scale-95 transition-all flex items-center justify-center group animate-bounce-in"
+        >
+          <div className="absolute right-full mr-4 bg-white text-black px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+            Suporte VIP
+          </div>
+          <MessageCircle className="w-8 h-8 fill-white/20" />
+        </a>
+      )}
     </div>
   );
 };
