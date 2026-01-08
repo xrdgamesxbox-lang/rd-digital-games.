@@ -119,7 +119,7 @@ const App: React.FC = () => {
     // Pagamentos
     pix_key: 'rodrigooportunidades20@gmail.com',
     pix_name: 'RODRIGO RD GAMES',
-    whatsapp_number: '5511999999999',
+    whatsapp_number: '55619982351315', // <--- EDITE AQUI: USE SEU NÚMERO (Ex: 5511999999999)
     stripe_public_key: 'pk_test_51ShFjSFLtqLxkHWdRthCEvD7ZoLKkF2pTSuuaCsPEQM7tfHM3QSWw471b7mwCOXgQrj6wxLODmoOmCSntYOZxSNp00yO7Y8EvQ',
     enable_stripe: 'true',
     enable_pix: 'true',
@@ -142,11 +142,19 @@ const App: React.FC = () => {
       showToast('Pagamento aprovado! Verifique seu e-mail ou contate nosso suporte.', 'success');
       setCart([]);
       localStorage.removeItem('rd_cart');
-      window.history.replaceState({}, document.title, window.location.pathname);
+      try {
+        window.history.replaceState({}, document.title, window.location.pathname);
+      } catch (e) {
+        console.warn('URL update failed:', e);
+      }
     }
     if (params.get('cancel')) {
       showToast('O pagamento foi cancelado.', 'error');
-      window.history.replaceState({}, document.title, window.location.pathname);
+      try {
+        window.history.replaceState({}, document.title, window.location.pathname);
+      } catch (e) {
+        console.warn('URL update failed:', e);
+      }
     }
 
     // Escuta o botão voltar do navegador para fechar o produto
@@ -198,14 +206,22 @@ const App: React.FC = () => {
   const handleOpenProduct = (game: Game) => {
     setSelectedProduct(game);
     // Atualiza a URL sem recarregar a página
-    const newUrl = `${window.location.pathname}?game=${game.id}`;
-    window.history.pushState({ path: newUrl }, '', newUrl);
+    try {
+      const newUrl = `${window.location.pathname}?game=${game.id}`;
+      window.history.pushState({ path: newUrl }, '', newUrl);
+    } catch (e) {
+      console.warn("History push failed (probably blob/iframe restriction):", e);
+    }
   };
 
   // Handle Close Product Page (Restores URL)
   const handleCloseProduct = () => {
     setSelectedProduct(null);
-    window.history.pushState({ path: window.location.pathname }, '', window.location.pathname);
+    try {
+      window.history.pushState({ path: window.location.pathname }, '', window.location.pathname);
+    } catch (e) {
+      console.warn("History push failed (probably blob/iframe restriction):", e);
+    }
   };
 
   // Função para verificar preço por link
@@ -359,7 +375,13 @@ const App: React.FC = () => {
       const { data: settingsData, error: settingsError } = await supabase.from('site_settings').select('key, value');
       if (!settingsError && settingsData) {
         const settingsMap: any = { ...siteSettings };
-        settingsData.forEach(item => { settingsMap[item.key] = item.value; });
+        settingsData.forEach(item => { 
+            // CORREÇÃO: Impedir que o Banco de Dados sobrescreva o número de WhatsApp definido no código
+            // Se a chave for 'whatsapp_number', ignoramos o valor do banco e usamos o do código
+            if (item.key !== 'whatsapp_number') {
+                settingsMap[item.key] = item.value; 
+            }
+        });
         setSiteSettings(settingsMap);
         setLogoError(false);
       }
@@ -1366,7 +1388,7 @@ const App: React.FC = () => {
                                   {!game.is_available && (
                                      <span className="text-[8px] bg-red-600 text-white px-2 py-0.5 rounded-full font-black uppercase ml-2">INDISPONÍVEL</span>
                                   )}
-                               </div>
+                                </div>
                             </div>
                             <div className="flex gap-2">
                                <button onClick={() => {setEditingGame(game); setShowAdminModal(true)}} className="p-4 bg-white/5 text-blue-500 rounded-2xl hover:bg-blue-600 hover:text-white transition-all"><Edit2 className="w-4 h-4"/></button>
