@@ -41,6 +41,9 @@ const App: React.FC = () => {
   const [selectedGameIds, setSelectedGameIds] = useState<string[]>([]);
   const [showBulkPriceModal, setShowBulkPriceModal] = useState(false);
 
+  // Estado para pesquisa no ADM
+  const [adminSearchTerm, setAdminSearchTerm] = useState('');
+
   // Estados para Licenças
   const [licenses, setLicenses] = useState<License[]>([]);
   const [editingLicense, setEditingLicense] = useState<License | null>(null);
@@ -625,6 +628,19 @@ const App: React.FC = () => {
 
   const handleSaveGame = async (gameData: Omit<Game, 'id'>) => {
     try {
+      // VALIDAÇÃO DE DUPLICIDADE
+      // Normaliza o título para comparação (remove espaços e lowercase)
+      const normalize = (str: string) => str.trim().toLowerCase();
+      const isDuplicate = games.some(g => 
+        normalize(g.title) === normalize(gameData.title) && 
+        g.id !== editingGame?.id // Ignora o próprio jogo se estiver editando
+      );
+
+      if (isDuplicate) {
+        showToast("ERRO: Já existe um jogo cadastrado com este nome!", "error");
+        return; // Interrompe a função
+      }
+
       const timestamp = new Date().toISOString();
       const gameDataWithTimestamp = { ...gameData, updated_at: timestamp };
 
@@ -690,6 +706,11 @@ const App: React.FC = () => {
       .filter(g => g.category === activeCategory)
       .filter(g => g.title.toLowerCase().includes(catalogSearchTerm.toLowerCase()));
   }, [games, activeCategory, catalogSearchTerm]);
+
+  // Filtro para a lista de produtos no ADM
+  const filteredAdminGames = useMemo(() => {
+    return games.filter(g => g.title.toLowerCase().includes(adminSearchTerm.toLowerCase()));
+  }, [games, adminSearchTerm]);
 
   const gamepassGames = games.filter(g => g.category === 'gamepass');
   const prevendaGames = games.filter(g => g.category === 'prevenda');
@@ -1302,11 +1323,11 @@ const App: React.FC = () => {
 
               {activeAdminTab === 'products' && (
                 <div className="bg-[#070709] border border-white/5 p-10 rounded-[4rem] space-y-6 animate-bounce-in relative">
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between flex-wrap gap-4">
                        <div className="flex items-center gap-4">
                           <h3 className="text-xl font-black uppercase italic text-white">VITRINE E ORDEM</h3>
                           <div className="bg-white/10 text-white px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border border-white/5">
-                             {games.length} {games.length === 1 ? 'ITEM' : 'ITENS'}
+                             {filteredAdminGames.length} ITENS
                           </div>
                           {selectedGameIds.length > 0 && (
                             <div className="bg-[var(--neon-green)] text-black px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest animate-bounce-in">
@@ -1314,7 +1335,18 @@ const App: React.FC = () => {
                             </div>
                           )}
                        </div>
-                       <p className="text-[9px] text-gray-500 font-bold uppercase tracking-widest">Organize seus produtos</p>
+                       
+                       {/* BARRA DE PESQUISA ADM */}
+                       <div className="relative w-full max-w-xs group">
+                          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 group-focus-within:text-[var(--neon-green)] transition-colors" />
+                          <input 
+                             type="text" 
+                             value={adminSearchTerm}
+                             onChange={e => setAdminSearchTerm(e.target.value)}
+                             placeholder="Filtrar por nome..." 
+                             className="w-full bg-black/40 border border-white/10 rounded-2xl py-3 pl-10 pr-4 text-white text-xs outline-none focus:border-[var(--neon-green)]/50 transition-all"
+                          />
+                       </div>
                     </div>
 
                     {/* BARRA FLUTUANTE DE AÇÕES EM MASSA */}
@@ -1336,66 +1368,75 @@ const App: React.FC = () => {
                     )}
 
                     <div className="max-h-[60vh] overflow-y-auto custom-scrollbar space-y-3 pr-2">
-                       {games.map((game, index) => (
-                         <div 
-                           key={game.id} 
-                           draggable={true}
-                           onDragStart={(e) => handleDragStart(e, index)}
-                           onDragEnd={handleDragEnd}
-                           onDragOver={handleDragOver}
-                           onDrop={(e) => handleDrop(e, index)}
-                           className={`flex items-center gap-4 bg-black/40 border p-4 rounded-3xl group transition-all ${selectedGameIds.includes(game.id) ? 'border-[var(--neon-green)]/50 bg-[var(--neon-green)]/5' : 'border-white/5 hover:border-white/10'} ${draggedIndex === index ? 'opacity-50 border-dashed border-[var(--neon-green)]' : ''}`}
-                         >
-                            
-                            {/* ÍCONE DE ARRASTAR */}
-                            <div className="cursor-grab active:cursor-grabbing p-2 text-gray-600 hover:text-white">
-                               <GripVertical className="w-5 h-5" />
-                            </div>
-
-                            {/* CHECKBOX DE SELEÇÃO */}
-                            <div className="flex items-center justify-center p-2">
-                               <input 
-                                  type="checkbox" 
-                                  checked={selectedGameIds.includes(game.id)} 
-                                  onChange={() => toggleGameSelection(game.id)}
-                                  className="w-5 h-5 accent-[var(--neon-green)] cursor-pointer"
-                               />
-                            </div>
-
-                            <div className="flex flex-col gap-1">
-                               <button onClick={() => handleMoveGame(game.id, 'up')} disabled={index === 0} className="p-1.5 bg-white/5 rounded-lg text-gray-500 hover:text-[var(--neon-green)] disabled:opacity-20 hover:disabled:text-gray-500 transition-colors"><ArrowUp className="w-3 h-3" /></button>
-                               <button onClick={() => handleMoveGame(game.id, 'down')} disabled={index === games.length - 1} className="p-1.5 bg-white/5 rounded-lg text-gray-500 hover:text-[var(--neon-green)] disabled:opacity-20 hover:disabled:text-gray-500 transition-colors"><ArrowDown className="w-3 h-3" /></button>
-                            </div>
-                            <img src={game.image_url} className="w-12 h-16 rounded-xl object-cover transition-transform group-hover:scale-105" />
-                            <div className="flex-grow">
-                               <p className="text-[11px] text-white font-black uppercase italic line-clamp-1">{game.title}</p>
-                               <div className="flex items-center gap-2 mt-1 flex-wrap">
-                                  <div className="flex items-center gap-1.5">
-                                    <Tag className="w-3 h-3 text-[var(--neon-green)]" />
-                                    <p className="text-[8px] text-gray-500 font-black uppercase tracking-widest">{game.category}</p>
-                                  </div>
-                                  
-                                  {/* DATA DE ATUALIZAÇÃO */}
-                                  {game.updated_at && (
-                                    <>
-                                       <span className="text-gray-700 mx-1">•</span>
-                                       <p className="text-[8px] text-gray-600 font-bold uppercase flex items-center gap-1">
-                                          Atualizado: {new Date(game.updated_at).toLocaleDateString('pt-BR')}
-                                       </p>
-                                    </>
-                                  )}
-
-                                  {!game.is_available && (
-                                     <span className="text-[8px] bg-red-600 text-white px-2 py-0.5 rounded-full font-black uppercase ml-2">INDISPONÍVEL</span>
-                                  )}
+                       {filteredAdminGames.length === 0 ? (
+                          <div className="text-center py-10 opacity-30">
+                             <Search className="w-12 h-12 mx-auto mb-2" />
+                             <p className="text-[10px] font-black uppercase">Nenhum produto encontrado</p>
+                          </div>
+                       ) : (
+                          filteredAdminGames.map((game, index) => (
+                           <div 
+                             key={game.id} 
+                             draggable={!adminSearchTerm} // Desativa drag and drop se estiver filtrando
+                             onDragStart={(e) => handleDragStart(e, index)}
+                             onDragEnd={handleDragEnd}
+                             onDragOver={handleDragOver}
+                             onDrop={(e) => handleDrop(e, index)}
+                             className={`flex items-center gap-4 bg-black/40 border p-4 rounded-3xl group transition-all ${selectedGameIds.includes(game.id) ? 'border-[var(--neon-green)]/50 bg-[var(--neon-green)]/5' : 'border-white/5 hover:border-white/10'} ${draggedIndex === index ? 'opacity-50 border-dashed border-[var(--neon-green)]' : ''}`}
+                           >
+                              
+                              {/* ÍCONE DE ARRASTAR (Escondido se houver busca) */}
+                              {!adminSearchTerm && (
+                                <div className="cursor-grab active:cursor-grabbing p-2 text-gray-600 hover:text-white">
+                                   <GripVertical className="w-5 h-5" />
                                 </div>
-                            </div>
-                            <div className="flex gap-2">
-                               <button onClick={() => {setEditingGame(game); setShowAdminModal(true)}} className="p-4 bg-white/5 text-blue-500 rounded-2xl hover:bg-blue-600 hover:text-white transition-all"><Edit2 className="w-4 h-4"/></button>
-                               <button onClick={() => setGameToDelete(game.id)} className="p-4 bg-white/5 text-red-500 rounded-2xl hover:bg-red-600 hover:text-white transition-all"><Trash2 className="w-4 h-4"/></button>
-                            </div>
-                         </div>
-                       ))}
+                              )}
+
+                              {/* CHECKBOX DE SELEÇÃO */}
+                              <div className="flex items-center justify-center p-2">
+                                 <input 
+                                    type="checkbox" 
+                                    checked={selectedGameIds.includes(game.id)} 
+                                    onChange={() => toggleGameSelection(game.id)}
+                                    className="w-5 h-5 accent-[var(--neon-green)] cursor-pointer"
+                                 />
+                              </div>
+
+                              <div className="flex flex-col gap-1">
+                                 <button onClick={() => handleMoveGame(game.id, 'up')} disabled={index === 0 || !!adminSearchTerm} className="p-1.5 bg-white/5 rounded-lg text-gray-500 hover:text-[var(--neon-green)] disabled:opacity-20 hover:disabled:text-gray-500 transition-colors"><ArrowUp className="w-3 h-3" /></button>
+                                 <button onClick={() => handleMoveGame(game.id, 'down')} disabled={index === games.length - 1 || !!adminSearchTerm} className="p-1.5 bg-white/5 rounded-lg text-gray-500 hover:text-[var(--neon-green)] disabled:opacity-20 hover:disabled:text-gray-500 transition-colors"><ArrowDown className="w-3 h-3" /></button>
+                              </div>
+                              <img src={game.image_url} className="w-12 h-16 rounded-xl object-cover transition-transform group-hover:scale-105" />
+                              <div className="flex-grow">
+                                 <p className="text-[11px] text-white font-black uppercase italic line-clamp-1">{game.title}</p>
+                                 <div className="flex items-center gap-2 mt-1 flex-wrap">
+                                    <div className="flex items-center gap-1.5">
+                                      <Tag className="w-3 h-3 text-[var(--neon-green)]" />
+                                      <p className="text-[8px] text-gray-500 font-black uppercase tracking-widest">{game.category}</p>
+                                    </div>
+                                    
+                                    {/* DATA DE ATUALIZAÇÃO */}
+                                    {game.updated_at && (
+                                      <>
+                                         <span className="text-gray-700 mx-1">•</span>
+                                         <p className="text-[8px] text-gray-600 font-bold uppercase flex items-center gap-1">
+                                            Atualizado: {new Date(game.updated_at).toLocaleDateString('pt-BR')}
+                                         </p>
+                                      </>
+                                    )}
+
+                                    {!game.is_available && (
+                                       <span className="text-[8px] bg-red-600 text-white px-2 py-0.5 rounded-full font-black uppercase ml-2">INDISPONÍVEL</span>
+                                    )}
+                                 </div>
+                              </div>
+                              <div className="flex gap-2">
+                                 <button onClick={() => {setEditingGame(game); setShowAdminModal(true)}} className="p-4 bg-white/5 text-blue-500 rounded-2xl hover:bg-blue-600 hover:text-white transition-all"><Edit2 className="w-4 h-4"/></button>
+                                 <button onClick={() => setGameToDelete(game.id)} className="p-4 bg-white/5 text-red-500 rounded-2xl hover:bg-red-600 hover:text-white transition-all"><Trash2 className="w-4 h-4"/></button>
+                              </div>
+                           </div>
+                         ))
+                       )}
                     </div>
                 </div>
               )}

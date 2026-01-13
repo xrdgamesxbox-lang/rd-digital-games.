@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Sparkles, Loader2, Save, Zap, Gamepad2, Layers, Rocket, Search, Globe, Power, PowerOff, CheckCircle, XCircle } from 'lucide-react';
 import { Game } from '../types.ts';
-import { searchGameData } from '../services/geminiService.ts';
+import { searchGameData, generateGameDescription } from '../services/geminiService.ts';
 
 interface AdminModalProps {
   onClose: () => void;
@@ -12,6 +12,7 @@ interface AdminModalProps {
 
 const AdminModal: React.FC<AdminModalProps> = ({ onClose, onSave, initialData }) => {
   const [loading, setLoading] = useState(false);
+  const [descLoading, setDescLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [formData, setFormData] = useState<any>({
     title: '',
@@ -79,6 +80,19 @@ const AdminModal: React.FC<AdminModalProps> = ({ onClose, onSave, initialData })
       alert("Erro ao pesquisar. Tente novamente.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleGenerateDescription = async () => {
+    if (!formData.title) return;
+    setDescLoading(true);
+    try {
+      const desc = await generateGameDescription(formData.title);
+      setFormData((prev: any) => ({ ...prev, description: desc }));
+    } catch (error) {
+      console.error("Erro ao gerar descrição:", error);
+    } finally {
+      setDescLoading(false);
     }
   };
 
@@ -273,7 +287,18 @@ const AdminModal: React.FC<AdminModalProps> = ({ onClose, onSave, initialData })
             </div>
 
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-gray-500 uppercase">DESCRIÇÃO</label>
+              <div className="flex justify-between items-center">
+                 <label className="text-[10px] font-black text-gray-500 uppercase">DESCRIÇÃO</label>
+                 <button 
+                   type="button" 
+                   onClick={handleGenerateDescription}
+                   disabled={descLoading || !formData.title}
+                   className="flex items-center gap-1 text-[8px] font-black text-[var(--neon-green)] uppercase hover:text-white transition-colors disabled:opacity-50"
+                 >
+                   {descLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+                   GERAR COM IA
+                 </button>
+              </div>
               <textarea rows={3} value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl p-4 text-white text-xs" />
             </div>
             
