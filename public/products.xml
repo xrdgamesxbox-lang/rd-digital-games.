@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0"
+  xmlns:g="http://base.google.com/ns/1.0">
+  <channel>
+    <title>RD Digital Games</title>
+    <link>https://rddigitalgames.netlify.app</link>
+    <description>Loja digital de games, gift cards e assinaturas</description>
+
+    <item>
+      <g:id>gamepass-ultimate-1mes</g:id>
+
+      <g:title>Xbox Game Pass Ultimate 1 Mês Digital</g:title>
+
+      <g:description>
+        Assinatura Xbox Game Pass Ultimate válida por 1 mês.
+        Acesso a centenas de jogos para Xbox e PC, Xbox Live Gold e EA Play.
+        Produto digital com entrega rápida.
+        Compatível com Xbox One, Xbox Series X|S e PC.
+      </g:description>
+
+      <g:link>
+        https://rddigitalgames.netlify.app
+      </g:link>
+
+      <g:image_link>
+        https://rddigitalgames.netlify.app/assets/gamepass-ultimate.png
+      </g:image_link>
+
+      <g:availability>in stock</g:availability>
+      <g:price>44.99 BRL</g:price>
+
+      <g:brand>Microsoft</g:brand>
+      <g:condition>new</g:condition>
+
+      <g:google_product_category>
+        Software &gt; Computer Software &gt; Video Game Software
+      </g:google_product_category>
+
+      <g:product_type>Assinaturas Digitais &gt; Xbox</g:product_type>
+
+      <g:shipping>
+        <g:country>BR</g:country>
+        <g:service>Entrega Digital</g:service>
+        <g:price>0.00 BRL</g:price>
+      </g:shipping>
+
+    </item>
+
+  </channel>
+</rss>
