@@ -631,14 +631,21 @@ const App: React.FC = () => {
       // VALIDAÇÃO DE DUPLICIDADE
       // Normaliza o título para comparação (remove espaços e lowercase)
       const normalize = (str: string) => str.trim().toLowerCase();
-      const isDuplicate = games.some(g => 
-        normalize(g.title) === normalize(gameData.title) && 
-        g.id !== editingGame?.id // Ignora o próprio jogo se estiver editando
-      );
+      
+      // Se estiver editando e o título não mudou, pula a validação de duplicidade
+      // Isso permite que o usuário salve edições de preço/descrição sem ser bloqueado
+      const isEditingSameTitle = editingGame && normalize(editingGame.title) === normalize(gameData.title);
+      
+      if (!isEditingSameTitle) {
+          const isDuplicate = games.some(g => 
+            normalize(g.title) === normalize(gameData.title) && 
+            g.id !== editingGame?.id 
+          );
 
-      if (isDuplicate) {
-        showToast("ERRO: Já existe um jogo cadastrado com este nome!", "error");
-        return; // Interrompe a função
+          if (isDuplicate) {
+            showToast("ERRO: Já existe um jogo cadastrado com este nome!", "error");
+            return; 
+          }
       }
 
       const timestamp = new Date().toISOString();
@@ -1522,165 +1529,6 @@ const App: React.FC = () => {
                    </div>
                 </div>
               )}
-           </div>
-        </div>
-      )}
-
-      {/* MODAL DE EDIÇÃO EM MASSA */}
-      {showBulkPriceModal && (
-        <BulkPriceModal 
-          games={games.filter(g => selectedGameIds.includes(g.id))} 
-          onClose={() => setShowBulkPriceModal(false)} 
-          onSave={handleBulkSave} 
-        />
-      )}
-
-      {/* MODAL DE LICENÇAS */}
-      {showLicenseModal && editingLicense && (
-         <div className="fixed inset-0 z-[600] bg-black/95 backdrop-blur-md flex items-center justify-center p-4">
-            <div className="bg-[#0a0a0c] border border-[var(--neon-green)]/10 w-full max-w-2xl rounded-[3.5rem] overflow-hidden shadow-2xl">
-               <div className="p-8 border-b border-white/5 flex items-center justify-between">
-                  <h3 className="text-xl font-black italic uppercase text-white">GERENCIAR ENTREGA</h3>
-                  <button onClick={() => setShowLicenseModal(false)} className="bg-white/5 p-2 rounded-xl text-gray-500 hover:text-white"><X /></button>
-               </div>
-               <form onSubmit={handleSaveLicense} className="p-8 space-y-6 max-h-[80vh] overflow-y-auto custom-scrollbar">
-                  <div className="grid grid-cols-2 gap-6">
-                     <div className="space-y-2">
-                        <label className="text-[9px] font-black text-gray-500 uppercase">Nome do Cliente</label>
-                        <input required type="text" value={editingLicense.customer_name} onChange={e => setEditingLicense({...editingLicense, customer_name: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl p-4 text-white text-xs" />
-                     </div>
-                     <div className="space-y-2">
-                        <label className="text-[9px] font-black text-gray-500 uppercase">Email do Cliente</label>
-                        <input required type="email" value={editingLicense.customer_email} onChange={e => setEditingLicense({...editingLicense, customer_email: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl p-4 text-white text-xs" />
-                     </div>
-                  </div>
-
-                  <div className="space-y-2">
-                     <label className="text-[9px] font-black text-gray-500 uppercase">Produto Comprado</label>
-                     <input required type="text" value={editingLicense.game_title} onChange={e => setEditingLicense({...editingLicense, game_title: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl p-4 text-[var(--neon-green)] font-bold text-sm" placeholder="Nome do Jogo ou Game Pass" />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                     <div className="space-y-2">
-                        <label className="text-[9px] font-black text-gray-500 uppercase">Categoria</label>
-                        <select value={editingLicense.product_category} onChange={e => setEditingLicense({...editingLicense, product_category: e.target.value, is_gamepass: e.target.value === 'gamepass'})} className="w-full bg-black border border-white/10 rounded-xl p-4 text-white text-xs">
-                           <option value="jogo">Jogo Completo</option>
-                           <option value="gamepass">Game Pass</option>
-                        </select>
-                     </div>
-                     <div className="space-y-2">
-                        <label className="text-[9px] font-black text-gray-500 uppercase">Tipo de Conta</label>
-                        <select value={editingLicense.account_type} onChange={e => setEditingLicense({...editingLicense, account_type: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl p-4 text-white text-xs">
-                           <option value="parental">Parental</option>
-                           <option value="exclusiva">Exclusiva</option>
-                        </select>
-                     </div>
-                  </div>
-
-                  <div className="bg-blue-900/10 p-6 rounded-3xl border border-blue-500/20 space-y-4">
-                     <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest border-b border-blue-500/10 pb-2">DADOS DE ACESSO ENTREGUES</p>
-                     <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                           <label className="text-[9px] font-black text-gray-500 uppercase">Email da Conta</label>
-                           <input type="text" value={editingLicense.assigned_email} onChange={e => setEditingLicense({...editingLicense, assigned_email: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl p-4 text-white text-xs font-mono" placeholder="conta@xbox.com" />
-                        </div>
-                        <div className="space-y-2">
-                           <label className="text-[9px] font-black text-gray-500 uppercase">Senha</label>
-                           <input type="text" value={editingLicense.assigned_password} onChange={e => setEditingLicense({...editingLicense, assigned_password: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl p-4 text-white text-xs font-mono" placeholder="Senha123" />
-                        </div>
-                     </div>
-                  </div>
-
-                  {editingLicense.is_gamepass && (
-                     <div className="bg-green-900/10 p-6 rounded-3xl border border-green-500/20 space-y-4">
-                        <p className="text-[10px] font-black text-green-400 uppercase tracking-widest border-b border-green-500/10 pb-2">CONTROLE DE ASSINATURA</p>
-                        <div className="grid grid-cols-3 gap-4">
-                           <div className="space-y-2">
-                              <label className="text-[9px] font-black text-gray-500 uppercase">Meses</label>
-                              <input type="number" value={editingLicense.subscription_months} onChange={e => {
-                                 const months = parseInt(e.target.value);
-                                 const start = new Date(editingLicense.start_date || new Date());
-                                 const end = new Date(start);
-                                 end.setMonth(end.getMonth() + months);
-                                 setEditingLicense({...editingLicense, subscription_months: months, end_date: end.toISOString().split('T')[0]});
-                              }} className="w-full bg-black border border-white/10 rounded-xl p-4 text-white text-xs" />
-                           </div>
-                           <div className="space-y-2">
-                              <label className="text-[9px] font-black text-gray-500 uppercase">Início</label>
-                              <input type="date" value={editingLicense.start_date} onChange={e => setEditingLicense({...editingLicense, start_date: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl p-4 text-white text-xs" />
-                           </div>
-                           <div className="space-y-2">
-                              <label className="text-[9px] font-black text-gray-500 uppercase">Vencimento</label>
-                              <input type="date" value={editingLicense.end_date} onChange={e => setEditingLicense({...editingLicense, end_date: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl p-4 text-white text-xs" />
-                           </div>
-                        </div>
-                     </div>
-                  )}
-
-                  <button type="submit" className="w-full bg-[var(--neon-green)] text-black py-6 rounded-2xl font-black uppercase text-xs tracking-widest shadow-lg flex items-center justify-center gap-3">
-                     <Save className="w-4 h-4" /> SALVAR DADOS
-                  </button>
-               </form>
-            </div>
-         </div>
-      )}
-
-      {showAdminModal && <AdminModal onClose={() => setShowAdminModal(false)} onSave={handleSaveGame} initialData={editingGame} />}
-      <CartDrawer 
-        isOpen={isCartOpen} 
-        onClose={() => setIsCartOpen(false)} 
-        items={cart} 
-        onRemove={removeFromCart} 
-        onClear={() => setCart([])} 
-        siteSettings={siteSettings}
-        customerEmail={user?.email}
-      />
-
-      {gameToDelete && (
-        <div className="fixed inset-0 z-[500] bg-black/95 flex items-center justify-center p-6">
-           <div className="bg-[#070709] p-12 rounded-[4rem] max-w-sm w-full text-center space-y-8 border border-white/5">
-              <h3 className="text-2xl font-black text-white uppercase italic">EXCLUIR ITEM?</h3>
-              <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Essa ação não pode ser desfeita.</p>
-              <div className="flex gap-4">
-                 <button onClick={() => setGameToDelete(null)} className="flex-1 bg-white/5 py-5 rounded-3xl font-black text-gray-500 uppercase text-[10px] tracking-widest">NÃO</button>
-                 <button onClick={() => handleDeleteGame(gameToDelete)} className="flex-1 bg-red-600 py-5 rounded-3xl font-black text-white uppercase text-[10px] tracking-widest">SIM, EXCLUIR</button>
-              </div>
-           </div>
-        </div>
-      )}
-
-      {orderToDelete && (
-        <div className="fixed inset-0 z-[700] bg-black/95 backdrop-blur-md flex items-center justify-center p-6">
-           <div className="bg-[#070709] p-12 rounded-[4rem] max-w-sm w-full text-center space-y-8 border border-red-600/20 shadow-[0_0_100px_rgba(220,38,38,0.1)]">
-              <div className="w-20 h-20 bg-red-600/10 rounded-full flex items-center justify-center mx-auto">
-                 <AlertTriangle className="w-10 h-10 text-red-600" />
-              </div>
-              <div className="space-y-2">
-                 <h3 className="text-2xl font-black text-white uppercase italic">APAGAR PEDIDO?</h3>
-                 <p className="text-[9px] text-gray-500 font-bold uppercase tracking-widest leading-relaxed px-4">O pedido será removido permanentemente do seu histórico administrativo.</p>
-              </div>
-              <div className="flex gap-4">
-                 <button onClick={() => setOrderToDelete(null)} className="flex-1 bg-white/5 py-5 rounded-3xl font-black text-gray-500 uppercase text-[10px] tracking-widest">VOLTAR</button>
-                 <button onClick={confirmDeleteOrder} className="flex-1 bg-red-600 py-5 rounded-3xl font-black text-white uppercase text-[10px] tracking-widest shadow-lg shadow-red-600/20">CONFIRMAR</button>
-              </div>
-           </div>
-        </div>
-      )}
-
-      {licenseToDelete && (
-        <div className="fixed inset-0 z-[700] bg-black/95 backdrop-blur-md flex items-center justify-center p-6">
-           <div className="bg-[#070709] p-12 rounded-[4rem] max-w-sm w-full text-center space-y-8 border border-red-600/20 shadow-[0_0_100px_rgba(220,38,38,0.1)]">
-              <div className="w-20 h-20 bg-red-600/10 rounded-full flex items-center justify-center mx-auto">
-                 <Trash2 className="w-10 h-10 text-red-600" />
-              </div>
-              <div className="space-y-2">
-                 <h3 className="text-2xl font-black text-white uppercase italic">APAGAR LICENÇA?</h3>
-                 <p className="text-[9px] text-gray-500 font-bold uppercase tracking-widest leading-relaxed px-4">O registro será removido permanentemente.</p>
-              </div>
-              <div className="flex gap-4">
-                 <button onClick={() => setLicenseToDelete(null)} className="flex-1 bg-white/5 py-5 rounded-3xl font-black text-gray-500 uppercase text-[10px] tracking-widest">VOLTAR</button>
-                 <button onClick={() => handleDeleteLicense(licenseToDelete)} className="flex-1 bg-red-600 py-5 rounded-3xl font-black text-white uppercase text-[10px] tracking-widest shadow-lg shadow-red-600/20">CONFIRMAR</button>
-              </div>
            </div>
         </div>
       )}
