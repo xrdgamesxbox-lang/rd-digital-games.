@@ -731,6 +731,38 @@ const App: React.FC = () => {
         customerEmail={user?.email}
       />
 
+      {/* MODAL COMO FUNCIONA (FIXED & HIGH Z-INDEX) */}
+      {showInfoModal && (
+        <div className="fixed inset-0 z-[5000] bg-black/95 backdrop-blur-md flex items-center justify-center p-6" onClick={(e) => { if (e.target === e.currentTarget) setShowInfoModal(false) }}>
+           <div className="bg-[#070709] border border-white/10 w-full max-w-4xl rounded-[3.5rem] overflow-hidden animate-bounce-in flex flex-col max-h-[90vh]">
+              <div className="p-10 border-b border-white/5 flex items-center justify-between">
+                 <h3 className="text-3xl font-black uppercase italic text-white tracking-tighter">TIPOS DE CONTA</h3>
+                 <button onClick={() => setShowInfoModal(false)} className="bg-white/5 p-4 rounded-2xl text-white hover:bg-white/10 transition-colors"><X className="w-6 h-6" /></button>
+              </div>
+              <div className="p-10 overflow-y-auto custom-scrollbar grid grid-cols-1 md:grid-cols-2 gap-8">
+                 <div className="bg-white/5 p-8 rounded-[3rem] border border-white/5 space-y-6 hover:border-[var(--neon-green)]/30 transition-colors">
+                    <div className="w-16 h-16 bg-orange-600 rounded-3xl flex items-center justify-center shadow-xl">
+                       <Users className="w-8 h-8 text-white" />
+                    </div>
+                    <div>
+                       <h4 className="text-2xl font-black text-white uppercase italic mb-2">CONTA PARENTAL</h4>
+                       <p className="text-gray-400 text-sm leading-relaxed whitespace-pre-wrap">{siteSettings.text_parental}</p>
+                    </div>
+                 </div>
+                 <div className="bg-white/5 p-8 rounded-[3rem] border border-white/5 space-y-6 hover:border-blue-500/30 transition-colors">
+                    <div className="w-16 h-16 bg-blue-600 rounded-3xl flex items-center justify-center shadow-xl">
+                       <UserPlus className="w-8 h-8 text-white" />
+                    </div>
+                    <div>
+                       <h4 className="text-2xl font-black text-white uppercase italic mb-2">CONTA EXCLUSIVA</h4>
+                       <p className="text-gray-400 text-sm leading-relaxed whitespace-pre-wrap">{siteSettings.text_exclusive}</p>
+                    </div>
+                 </div>
+              </div>
+           </div>
+        </div>
+      )}
+
       {toast && (
         <div className="fixed top-24 right-8 z-[300] animate-bounce-in">
            <div className={`px-6 py-4 rounded-2xl border font-black text-[10px] uppercase tracking-widest backdrop-blur-xl ${toast.type === 'error' ? 'bg-red-600/10 border-red-600/20 text-red-500' : 'bg-[var(--neon-green)]/10 border-[var(--neon-green)]/20 text-[var(--neon-green)]'}`}>
@@ -861,6 +893,7 @@ const App: React.FC = () => {
                 <h2 className="text-5xl lg:text-7xl font-black text-[var(--neon-green)] uppercase italic tracking-tighter leading-[0.9]">{siteSettings.how_it_works_title}</h2>
                 <p className="text-xl text-gray-400 max-w-lg mx-auto lg:mx-0">{siteSettings.how_it_works_subtitle}</p>
                 <button 
+                  type="button"
                   onClick={() => setShowInfoModal(true)}
                   className="bg-[var(--neon-green)] text-black px-12 py-5 rounded-2xl font-black uppercase text-sm tracking-widest hover:scale-105 active:scale-95 transition-all shadow-[0_10px_40px_rgba(204,255,0,0.2)]"
                 >
@@ -994,6 +1027,552 @@ const App: React.FC = () => {
             </div>
          </div>
       </footer>
+
+      {/* MODAL DE LOGIN (NOVA IMPLEMENTAÇÃO) */}
+      {showAuthModal && (
+        <div className="fixed inset-0 z-[1000] bg-black/95 backdrop-blur-md flex items-center justify-center p-4">
+           <div className="relative w-full max-w-[400px] animate-bounce-in">
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[var(--neon-green)]/5 blur-[120px] rounded-full pointer-events-none"></div>
+              
+              <div className="text-center mb-10">
+                 {siteSettings.logo_url && !logoError ? (
+                   <img src={siteSettings.logo_url} onError={() => setLogoError(true)} className="h-28 w-auto object-contain mx-auto mb-4 drop-shadow-[0_0_20px_var(--neon-glow)]" />
+                 ) : (
+                   <div className="w-16 h-16 bg-[var(--neon-green)] rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-[0_0_30px_var(--neon-glow)] rotate-3">
+                      <Zap className="w-8 h-8 text-black fill-black" />
+                   </div>
+                 )}
+                 <h1 className="text-3xl font-black italic uppercase tracking-tighter neon-text-glow text-white">{siteSettings.login_title || 'RD DIGITAL'}</h1>
+                 <p className="text-[9px] text-gray-500 font-black uppercase tracking-[0.4em] mt-1">{siteSettings.login_subtitle || 'Sua conta de jogos oficial'}</p>
+                 
+                 {/* AVISO IMPORTANTE */}
+                 <div className="mt-6 bg-orange-600/10 border border-orange-500/20 rounded-2xl p-4 flex items-center gap-3 text-left">
+                    <AlertTriangle className="w-6 h-6 text-orange-500 flex-shrink-0" />
+                    <p className="text-[9px] text-orange-200 font-bold uppercase leading-relaxed">Atenção: Para comprar, é obrigatório criar uma conta ou fazer login.</p>
+                 </div>
+              </div>
+
+              <div className="bg-white/[0.03] backdrop-blur-2xl border border-white/10 p-8 rounded-[2.5rem] shadow-2xl relative">
+                <button onClick={() => setShowAuthModal(false)} className="absolute top-6 right-6 text-gray-500 hover:text-white"><X className="w-5 h-5" /></button>
+                
+                {needsEmailConfirmation ? (
+                  <div className="text-center space-y-6">
+                     <Mail className="w-12 h-12 text-[var(--neon-green)] mx-auto animate-pulse" />
+                     <h2 className="text-xl font-black text-white uppercase italic">CONFIRME SEU E-MAIL!</h2>
+                     <p className="text-gray-400 text-[10px] uppercase font-bold tracking-widest leading-relaxed">Verifique o link enviado para ativar sua conta.</p>
+                     <button onClick={() => setNeedsEmailConfirmation(false)} className="w-full bg-[var(--neon-green)] text-black py-4 rounded-2xl font-black text-xs">ENTENDI</button>
+                  </div>
+                ) : (
+                  <form onSubmit={handleAuth} className="space-y-4">
+                    <div className="space-y-1">
+                      <label className="text-[8px] font-black text-gray-500 uppercase ml-2 tracking-widest">E-mail de acesso</label>
+                      <input required type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full bg-black/40 border border-white/5 rounded-2xl py-4 px-6 text-white text-sm focus:border-[var(--neon-green)]/50 outline-none transition-all" placeholder="nome@exemplo.com" />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[8px] font-black text-gray-500 uppercase ml-2 tracking-widest">Sua senha</label>
+                      <input required type="password" value={password} onChange={e => setPassword(e.target.value)} className="w-full bg-black/40 border border-white/5 rounded-2xl py-4 px-6 text-white text-sm focus:border-[var(--neon-green)]/50 outline-none transition-all" placeholder="••••••••" />
+                    </div>
+                    <button type="submit" disabled={authLoading} className="w-full bg-[var(--neon-green)] text-black py-4 mt-2 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-[0_10px_30px_var(--neon-glow)] hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3">
+                      {authLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <>{isSignUpMode ? 'CRIAR CONTA' : (siteSettings.login_btn_text || 'ACESSAR AGORA')} <LogIn className="w-4 h-4" /></>}
+                    </button>
+                    <div className="pt-4 text-center border-t border-white/5 mt-6">
+                      <button type="button" onClick={() => setIsSignUpMode(!isSignUpMode)} className="text-[9px] font-black uppercase text-gray-500 hover:text-white transition-colors tracking-widest">
+                        {isSignUpMode ? 'JÁ TENHO UMA CONTA' : 'NÃO TEM CONTA? CADASTRE-SE'}
+                      </button>
+                    </div>
+                  </form>
+                )}
+              </div>
+              <p className="text-center text-[8px] text-gray-600 font-bold uppercase tracking-[0.2em] mt-8">{siteSettings.login_footer || 'Direitos Reservados'}</p>
+           </div>
+        </div>
+      )}
+
+      {/* ADM PANEL INTEGRAL */}
+      {isAdminPanelOpen && (
+        <div className="fixed inset-0 z-[100] bg-black overflow-y-auto p-4 md:p-12 custom-scrollbar">
+           <div className="max-w-7xl mx-auto space-y-12 pb-20">
+              <div className="flex justify-between items-center border-b border-white/5 pb-10">
+                <div className="flex flex-col">
+                   <h2 className="text-4xl font-black italic uppercase text-white">ADMINISTRAÇÃO RD</h2>
+                   <p className="text-[9px] text-[var(--neon-green)] font-black uppercase tracking-[0.5em]">CONTROLE TOTAL DO SEU NEGÓCIO</p>
+                </div>
+                <button onClick={() => setIsAdminPanelOpen(false)} className="bg-white/5 p-4 rounded-3xl"><X className="w-8 h-8 text-white"/></button>
+              </div>
+
+              {/* MENU DE NAVEGAÇÃO DO ADM */}
+              <div className="flex gap-4">
+                 <button onClick={() => setActiveAdminTab('dashboard')} className={`px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${activeAdminTab === 'dashboard' ? 'bg-[var(--neon-green)] text-black' : 'bg-white/5 text-gray-500'}`}>DASHBOARD</button>
+                 <button onClick={() => setActiveAdminTab('products')} className={`px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${activeAdminTab === 'products' ? 'bg-[var(--neon-green)] text-black' : 'bg-white/5 text-gray-500'}`}>PRODUTOS</button>
+                 <button onClick={() => setActiveAdminTab('licenses')} className={`px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${activeAdminTab === 'licenses' ? 'bg-[var(--neon-green)] text-black' : 'bg-white/5 text-gray-500'}`}>ENTREGAS & GAME PASS</button>
+              </div>
+
+              {activeAdminTab === 'dashboard' && (
+                <div className="space-y-12 animate-bounce-in">
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
+                     <div className="bg-[#070709] border border-white/5 p-8 rounded-[3rem]">
+                        <p className="text-[10px] font-black text-gray-500 uppercase">Faturamento</p>
+                        <h4 className="text-3xl font-black text-white italic mt-2">R$ {stats.totalRevenue.toFixed(2)}</h4>
+                     </div>
+                     <div className="bg-[#070709] border border-white/5 p-8 rounded-[3rem]">
+                        <p className="text-[10px] font-black text-gray-500 uppercase">Visitantes</p>
+                        <h4 className="text-3xl font-black text-white italic mt-2">{stats.totalVisits}</h4>
+                     </div>
+                     <div className="bg-[#070709] border border-white/5 p-8 rounded-[3rem]">
+                        <p className="text-[10px] font-black text-gray-500 uppercase">Vendas</p>
+                        <h4 className="text-3xl font-black text-white italic mt-2">{stats.totalSales}</h4>
+                     </div>
+                     <button onClick={() => {setEditingGame(null); setShowAdminModal(true)}} className="bg-[var(--neon-green)] p-8 rounded-[3rem] text-black font-black uppercase text-xs flex items-center justify-center gap-3">
+                       <Plus /> NOVO PRODUTO
+                     </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <div className="bg-[#070709] border border-white/5 p-10 rounded-[4rem] space-y-6">
+                       <div className="flex items-center gap-3 text-[var(--neon-green)] mb-2">
+                          <Palette className="w-5 h-5" />
+                          <h3 className="text-[12px] font-black uppercase italic">IDENTIDADE VISUAL</h3>
+                       </div>
+                       <div className="space-y-4">
+                          <div className="space-y-1">
+                            <label className="text-[9px] font-black text-gray-500 uppercase">Logo URL (PNG Transparente)</label>
+                            <input type="text" value={siteSettings.logo_url || ''} onChange={e => updateSetting('logo_url', e.target.value)} className="w-full bg-black border border-white/10 rounded-2xl p-4 text-white text-xs" placeholder="Link da imagem .png" />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-[9px] font-black text-gray-500 uppercase">Cor do Neon</label>
+                            <input type="color" value={siteSettings.primary_color || '#ccff00'} onChange={e => updateSetting('primary_color', e.target.value)} className="w-full h-12 bg-black border border-white/10 rounded-2xl p-1" />
+                          </div>
+                       </div>
+                    </div>
+                    
+                    {/* GATEWAYS DE PAGAMENTO */}
+                    <div className="bg-[#070709] border border-[var(--neon-green)]/20 p-10 rounded-[4rem] space-y-6">
+                       <div className="flex items-center gap-3 text-orange-500 mb-2">
+                          <CreditCard className="w-5 h-5" />
+                          <h3 className="text-[12px] font-black uppercase italic">GATEWAYS DE PAGAMENTO</h3>
+                       </div>
+                       <div className="space-y-4">
+                          <div className="bg-black/40 p-4 rounded-2xl border border-white/5 space-y-4">
+                            <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Opção PIX Manual</p>
+                            <div className="space-y-1">
+                              <label className="text-[8px] font-black text-gray-600 uppercase">Chave PIX</label>
+                              <input type="text" value={siteSettings.pix_key || ''} onChange={e => updateSetting('pix_key', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                            </div>
+                            <div className="flex items-center gap-2">
+                               <input type="checkbox" checked={siteSettings.enable_pix === 'true'} onChange={e => updateSetting('enable_pix', String(e.target.checked))} className="w-4 h-4 accent-[var(--neon-green)]" />
+                               <label className="text-[9px] font-black text-gray-500">HABILITAR PIX</label>
+                            </div>
+                          </div>
+                          <div className="bg-blue-600/5 p-4 rounded-2xl border border-blue-500/20 space-y-4">
+                            <p className="text-[9px] font-black text-blue-400 uppercase tracking-widest">Opção Stripe (Cartão)</p>
+                            <div className="space-y-1">
+                              <label className="text-[8px] font-black text-gray-600 uppercase">Stripe Public Key</label>
+                              <input type="text" value={siteSettings.stripe_public_key || ''} onChange={e => updateSetting('stripe_public_key', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" placeholder="pk_live_..." />
+                            </div>
+                            <div className="flex items-center gap-2">
+                               <input type="checkbox" checked={siteSettings.enable_stripe === 'true'} onChange={e => updateSetting('enable_stripe', String(e.target.checked))} className="w-4 h-4 accent-blue-500" />
+                               <label className="text-[9px] font-black text-gray-500">HABILITAR STRIPE</label>
+                            </div>
+                          </div>
+                          <div className="bg-purple-600/5 p-4 rounded-2xl border border-purple-500/20 space-y-4">
+                            <p className="text-[9px] font-black text-purple-400 uppercase tracking-widest">Opção Cartão via WhatsApp</p>
+                            <div className="flex items-center gap-2">
+                               <input type="checkbox" checked={siteSettings.enable_card_whatsapp === 'true'} onChange={e => updateSetting('enable_card_whatsapp', String(e.target.checked))} className="w-4 h-4 accent-purple-500" />
+                               <label className="text-[9px] font-black text-gray-500">HABILITAR OPÇÃO NO CHECKOUT</label>
+                            </div>
+                          </div>
+                       </div>
+                    </div>
+
+                    <div className="bg-[#070709] border border-white/5 p-10 rounded-[4rem] space-y-6">
+                       <div className="flex items-center gap-3 text-blue-500 mb-2">
+                          <Languages className="w-5 h-5" />
+                          <h3 className="text-[12px] font-black uppercase italic">DICIONÁRIO DO SITE</h3>
+                       </div>
+                       
+                       <div className="space-y-8 max-h-[500px] overflow-y-auto custom-scrollbar pr-2">
+                          
+                          {/* LOGIN & GERAL */}
+                          <div className="space-y-4">
+                            <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest border-b border-white/10 pb-1">TELA DE LOGIN & GERAL</p>
+                            <div className="space-y-1">
+                              <label className="text-[8px] font-black text-gray-600 uppercase">Título Principal</label>
+                              <input type="text" value={siteSettings.login_title || ''} onChange={e => updateSetting('login_title', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[8px] font-black text-gray-600 uppercase">Subtítulo</label>
+                              <input type="text" value={siteSettings.login_subtitle || ''} onChange={e => updateSetting('login_subtitle', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[8px] font-black text-gray-600 uppercase">Texto Botão Entrar</label>
+                              <input type="text" value={siteSettings.login_btn_text || ''} onChange={e => updateSetting('login_btn_text', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[8px] font-black text-gray-600 uppercase">Texto Rodapé</label>
+                              <input type="text" value={siteSettings.login_footer || ''} onChange={e => updateSetting('login_footer', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                            </div>
+                          </div>
+
+                          {/* HERO / CAPA */}
+                          <div className="space-y-4">
+                            <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest border-b border-white/10 pb-1">BANNER DE CAPA (HERO)</p>
+                            <div className="space-y-1">
+                              <label className="text-[8px] font-black text-gray-600 uppercase">Título Grande</label>
+                              <input type="text" value={siteSettings.hero_title || ''} onChange={e => updateSetting('hero_title', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[8px] font-black text-gray-600 uppercase">Descrição</label>
+                              <textarea rows={3} value={siteSettings.hero_description || ''} onChange={e => updateSetting('hero_description', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                            </div>
+                          </div>
+
+                          {/* COMO FUNCIONA */}
+                          <div className="space-y-4">
+                            <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest border-b border-white/10 pb-1">SEÇÃO COMO FUNCIONA</p>
+                            <div className="space-y-1">
+                              <label className="text-[8px] font-black text-gray-600 uppercase">Título Seção</label>
+                              <input type="text" value={siteSettings.how_it_works_title || ''} onChange={e => updateSetting('how_it_works_title', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[8px] font-black text-gray-600 uppercase">Subtítulo Seção</label>
+                              <input type="text" value={siteSettings.how_it_works_subtitle || ''} onChange={e => updateSetting('how_it_works_subtitle', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[8px] font-black text-gray-600 uppercase">Texto Botão</label>
+                              <input type="text" value={siteSettings.how_it_works_btn || ''} onChange={e => updateSetting('how_it_works_btn', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[8px] font-black text-gray-600 uppercase">Explicação Conta Parental (Modal)</label>
+                              <textarea rows={4} value={siteSettings.text_parental || ''} onChange={e => updateSetting('text_parental', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[8px] font-black text-gray-600 uppercase">Explicação Conta Exclusiva (Modal)</label>
+                              <textarea rows={4} value={siteSettings.text_exclusive || ''} onChange={e => updateSetting('text_exclusive', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                            </div>
+                          </div>
+
+                          {/* VITRINES E CATÁLOGO */}
+                          <div className="space-y-4">
+                            <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest border-b border-white/10 pb-1">VITRINES E TÍTULOS</p>
+                            <div className="space-y-1">
+                              <label className="text-[8px] font-black text-gray-600 uppercase">Título Game Pass</label>
+                              <input type="text" value={siteSettings.gamepass_title || ''} onChange={e => updateSetting('gamepass_title', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[8px] font-black text-gray-600 uppercase">Subtítulo Game Pass</label>
+                              <input type="text" value={siteSettings.gamepass_subtitle || ''} onChange={e => updateSetting('gamepass_subtitle', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[8px] font-black text-gray-600 uppercase">Título Pré-Venda</label>
+                              <input type="text" value={siteSettings.prevenda_title || ''} onChange={e => updateSetting('prevenda_title', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[8px] font-black text-gray-600 uppercase">Subtítulo Pré-Venda</label>
+                              <input type="text" value={siteSettings.prevenda_subtitle || ''} onChange={e => updateSetting('prevenda_subtitle', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[8px] font-black text-gray-600 uppercase">Título Catálogo Geral</label>
+                              <input type="text" value={siteSettings.catalog_title || ''} onChange={e => updateSetting('catalog_title', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                            </div>
+                          </div>
+
+                          {/* NAVEGAÇÃO E BOTÕES */}
+                          <div className="space-y-4">
+                            <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest border-b border-white/10 pb-1">NAVEGAÇÃO, ABAS E CARRINHO</p>
+                            <div className="space-y-1">
+                              <label className="text-[8px] font-black text-gray-600 uppercase">Texto Aba Jogos</label>
+                              <input type="text" value={siteSettings.tab_games || ''} onChange={e => updateSetting('tab_games', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[8px] font-black text-gray-600 uppercase">Texto Aba Game Pass</label>
+                              <input type="text" value={siteSettings.tab_gamepass || ''} onChange={e => updateSetting('tab_gamepass', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[8px] font-black text-gray-600 uppercase">Texto Aba Pré-Venda</label>
+                              <input type="text" value={siteSettings.tab_preorder || ''} onChange={e => updateSetting('tab_preorder', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[8px] font-black text-gray-600 uppercase">Placeholder Busca</label>
+                              <input type="text" value={siteSettings.search_placeholder || ''} onChange={e => updateSetting('search_placeholder', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[8px] font-black text-gray-600 uppercase">Título Carrinho</label>
+                              <input type="text" value={siteSettings.cart_title || ''} onChange={e => updateSetting('cart_title', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[8px] font-black text-gray-600 uppercase">Texto Carrinho Vazio</label>
+                              <input type="text" value={siteSettings.cart_empty_text || ''} onChange={e => updateSetting('cart_empty_text', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[8px] font-black text-gray-600 uppercase">Texto Botão Checkout</label>
+                              <input type="text" value={siteSettings.checkout_button_text || ''} onChange={e => updateSetting('checkout_button_text', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                            </div>
+                          </div>
+                       </div>
+
+                       <button onClick={handleSaveSettings} disabled={authLoading} className="w-full bg-[var(--neon-green)] text-black py-6 rounded-3xl font-black flex items-center justify-center gap-3 uppercase text-[10px] shadow-xl hover:scale-[1.02] transition-all">
+                          {authLoading ? <Loader2 className="animate-spin" /> : <Save />} SALVAR TODAS AS ALTERAÇÕES
+                       </button>
+                    </div>
+                  </div>
+
+                  {/* HISTÓRICO DE PEDIDOS */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                     <div className="bg-[#070709] border border-white/5 p-10 rounded-[4rem] space-y-6">
+                        <div className="flex items-center justify-between">
+                           <h3 className="text-xl font-black uppercase italic text-white">HISTÓRICO DE PEDIDOS</h3>
+                           <TrendingUp className="text-[var(--neon-green)] w-5 h-5" />
+                        </div>
+                        <div className="max-h-96 overflow-y-auto custom-scrollbar space-y-3 pr-2">
+                           {stats.recentSales.map(sale => (
+                             <div 
+                               key={sale.id} 
+                               className="flex flex-col gap-4 p-6 bg-black/40 border border-white/5 rounded-3xl hover:border-[var(--neon-green)]/30 transition-all group relative overflow-hidden"
+                             >
+                                <div className="flex justify-between items-start" onClick={() => setSelectedOrder(sale)}>
+                                   <div className="space-y-1 flex-grow cursor-pointer">
+                                      <div className="flex items-center gap-2">
+                                         <p className="text-white font-black text-[11px] uppercase italic">#{sale.id.slice(0,6).toUpperCase()}</p>
+                                         <div className={`px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-tighter ${sale.status === 'aprovado' ? 'bg-green-600/20 text-green-500' : 'bg-orange-600/20 text-orange-500'}`}>
+                                            {sale.status}
+                                         </div>
+                                      </div>
+                                      <p className="text-[9px] text-gray-500 font-bold uppercase truncate max-w-[200px]">{sale.customer_email || 'Email não registrado'}</p>
+                                   </div>
+                                   <div className="text-right flex flex-col items-end gap-2">
+                                      <button 
+                                        onClick={(e) => { e.stopPropagation(); setOrderToDelete(sale.id); }}
+                                        className="p-2 bg-red-600/10 text-red-500 rounded-xl opacity-0 group-hover:opacity-100 transition-all hover:bg-red-600 hover:text-white"
+                                      >
+                                        <Trash2 className="w-3 h-3" />
+                                      </button>
+                                      <p className="text-[var(--neon-green)] font-black text-lg italic tracking-tighter">R$ {sale.total_amount.toFixed(2)}</p>
+                                      <p className="text-[8px] text-gray-600 font-black uppercase">{new Date(sale.created_at).toLocaleDateString('pt-BR')}</p>
+                                   </div>
+                                </div>
+                             </div>
+                           ))}
+                        </div>
+                     </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ... (Resto do conteúdo da aba de produtos e licenças mantido idêntico) ... */}
+              {activeAdminTab === 'products' && (
+                <div className="bg-[#070709] border border-white/5 p-10 rounded-[4rem] space-y-6 animate-bounce-in relative">
+                    <div className="flex items-center justify-between flex-wrap gap-4">
+                       <div className="flex items-center gap-4">
+                          <h3 className="text-xl font-black uppercase italic text-white">VITRINE E ORDEM</h3>
+                          <div className="bg-white/10 text-white px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border border-white/5">
+                             {filteredAdminGames.length} ITENS
+                          </div>
+                          {selectedGameIds.length > 0 && (
+                            <div className="bg-[var(--neon-green)] text-black px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest animate-bounce-in">
+                               {selectedGameIds.length} SELECIONADOS
+                            </div>
+                          )}
+                       </div>
+                       
+                       <div className="relative w-full max-w-xs group">
+                          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 group-focus-within:text-[var(--neon-green)] transition-colors" />
+                          <input 
+                             type="text" 
+                             value={adminSearchTerm}
+                             onChange={e => setAdminSearchTerm(e.target.value)}
+                             placeholder="Filtrar por nome..." 
+                             className="w-full bg-black/40 border border-white/10 rounded-2xl py-3 pl-10 pr-4 text-white text-xs outline-none focus:border-[var(--neon-green)]/50 transition-all"
+                          />
+                       </div>
+                    </div>
+
+                    {selectedGameIds.length > 0 && (
+                       <div className="sticky top-0 z-50 bg-[var(--neon-green)]/10 backdrop-blur-md border border-[var(--neon-green)]/20 p-4 rounded-3xl flex items-center justify-between animate-bounce-in mb-4">
+                          <div className="flex items-center gap-2 text-[var(--neon-green)]">
+                             <ListChecks className="w-5 h-5" />
+                             <span className="text-[10px] font-black uppercase tracking-widest">AÇÕES PARA SELECIONADOS</span>
+                          </div>
+                          <div className="flex gap-2">
+                             <button onClick={() => setShowBulkPriceModal(true)} className="bg-[var(--neon-green)] text-black px-6 py-3 rounded-xl font-black uppercase text-[9px] tracking-widest hover:scale-105 transition-transform flex items-center gap-2">
+                                <DollarSign className="w-3 h-3" /> EDITAR PREÇOS E OPÇÕES ({selectedGameIds.length})
+                             </button>
+                             <button onClick={() => setSelectedGameIds([])} className="bg-white/10 text-white px-4 py-3 rounded-xl font-black uppercase text-[9px] tracking-widest hover:bg-white/20 transition-colors">
+                                CANCELAR
+                             </button>
+                          </div>
+                       </div>
+                    )}
+
+                    <div className="max-h-[60vh] overflow-y-auto custom-scrollbar space-y-3 pr-2">
+                       {filteredAdminGames.length === 0 ? (
+                          <div className="text-center py-10 opacity-30">
+                             <Search className="w-12 h-12 mx-auto mb-2" />
+                             <p className="text-[10px] font-black uppercase">Nenhum produto encontrado</p>
+                          </div>
+                       ) : (
+                          filteredAdminGames.map((game, index) => (
+                           <div 
+                             key={game.id} 
+                             draggable={!adminSearchTerm} 
+                             onDragStart={(e) => handleDragStart(e, index)}
+                             onDragEnd={handleDragEnd}
+                             onDragOver={handleDragOver}
+                             onDrop={(e) => handleDrop(e, index)}
+                             className={`flex items-center gap-4 bg-black/40 border p-4 rounded-3xl group transition-all ${selectedGameIds.includes(game.id) ? 'border-[var(--neon-green)]/50 bg-[var(--neon-green)]/5' : 'border-white/5 hover:border-white/10'} ${draggedIndex === index ? 'opacity-50 border-dashed border-[var(--neon-green)]' : ''}`}
+                           >
+                              
+                              {!adminSearchTerm && (
+                                <div className="cursor-grab active:cursor-grabbing p-2 text-gray-600 hover:text-white">
+                                   <GripVertical className="w-5 h-5" />
+                                </div>
+                              )}
+
+                              <div className="flex items-center justify-center p-2">
+                                 <input 
+                                    type="checkbox" 
+                                    checked={selectedGameIds.includes(game.id)} 
+                                    onChange={() => toggleGameSelection(game.id)}
+                                    className="w-5 h-5 accent-[var(--neon-green)] cursor-pointer"
+                                 />
+                              </div>
+
+                              <div className="flex flex-col gap-1">
+                                 <button onClick={() => handleMoveGame(game.id, 'up')} disabled={index === 0 || !!adminSearchTerm} className="p-1.5 bg-white/5 rounded-lg text-gray-500 hover:text-[var(--neon-green)] disabled:opacity-20 hover:disabled:text-gray-500 transition-colors"><ArrowUp className="w-3 h-3" /></button>
+                                 <button onClick={() => handleMoveGame(game.id, 'down')} disabled={index === games.length - 1 || !!adminSearchTerm} className="p-1.5 bg-white/5 rounded-lg text-gray-500 hover:text-[var(--neon-green)] disabled:opacity-20 hover:disabled:text-gray-500 transition-colors"><ArrowDown className="w-3 h-3" /></button>
+                              </div>
+                              <img src={game.image_url} className="w-12 h-16 rounded-xl object-cover transition-transform group-hover:scale-105" />
+                              <div className="flex-grow">
+                                 <p className="text-[11px] text-white font-black uppercase italic line-clamp-1">{game.title}</p>
+                                 <div className="flex items-center gap-2 mt-1 flex-wrap">
+                                    <div className="flex items-center gap-1.5">
+                                      <Tag className="w-3 h-3 text-[var(--neon-green)]" />
+                                      <p className="text-[8px] text-gray-500 font-black uppercase tracking-widest">{game.category}</p>
+                                    </div>
+                                    
+                                    {game.updated_at && (
+                                      <>
+                                         <span className="text-gray-700 mx-1">•</span>
+                                         <p className="text-[8px] text-gray-600 font-bold uppercase flex items-center gap-1">
+                                            Atualizado: {new Date(game.updated_at).toLocaleDateString('pt-BR')}
+                                         </p>
+                                      </>
+                                    )}
+
+                                    {!game.is_available && (
+                                       <span className="text-[8px] bg-red-600 text-white px-2 py-0.5 rounded-full font-black uppercase ml-2">INDISPONÍVEL</span>
+                                    )}
+                                 </div>
+                              </div>
+                              <div className="flex gap-2">
+                                 <button onClick={() => {setEditingGame(game); setShowAdminModal(true)}} className="p-4 bg-white/5 text-blue-500 rounded-2xl hover:bg-blue-600 hover:text-white transition-all"><Edit2 className="w-4 h-4"/></button>
+                                 <button onClick={() => setGameToDelete(game.id)} className="p-4 bg-white/5 text-red-500 rounded-2xl hover:bg-red-600 hover:text-white transition-all"><Trash2 className="w-4 h-4"/></button>
+                              </div>
+                           </div>
+                         ))
+                       )}
+                    </div>
+                </div>
+              )}
+
+              {activeAdminTab === 'licenses' && (
+                <div className="space-y-8 animate-bounce-in">
+                   <div className="flex justify-between items-center">
+                      <h3 className="text-2xl font-black italic uppercase text-white">PAINEL DE ENTREGAS & GAME PASS</h3>
+                      <button onClick={createNewLicense} className="bg-[var(--neon-green)] text-black px-6 py-4 rounded-2xl font-black uppercase text-xs flex items-center gap-2 shadow-lg hover:scale-105 transition-transform">
+                         <Plus className="w-4 h-4" /> Nova Licença
+                      </button>
+                   </div>
+
+                   <div className="grid grid-cols-1 gap-6">
+                      {licenses.length === 0 ? (
+                         <div className="text-center py-20 bg-white/5 rounded-[3rem] border border-white/5">
+                            <Key className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+                            <p className="text-gray-500 font-black uppercase text-xs">Nenhuma licença cadastrada</p>
+                         </div>
+                      ) : (
+                         licenses.map(lic => {
+                            const daysLeft = lic.is_gamepass ? calculateDaysRemaining(lic.end_date) : null;
+                            const isExpiring = daysLeft !== null && daysLeft <= 10 && daysLeft >= 0;
+                            const isExpired = daysLeft !== null && daysLeft < 0;
+
+                            return (
+                               <div key={lic.id} className="bg-[#070709] border border-white/10 rounded-[2.5rem] p-8 flex flex-col lg:flex-row gap-8 relative group hover:border-[var(--neon-green)]/30 transition-all">
+                                  <div className="flex-1 space-y-4">
+                                     <div className="flex items-center gap-3">
+                                        <div className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-tighter ${lic.product_category === 'gamepass' ? 'bg-green-600 text-white' : 'bg-orange-600 text-white'}`}>
+                                           {lic.product_category === 'gamepass' ? 'GAME PASS' : 'JOGO COMPLETO'}
+                                        </div>
+                                        {lic.is_gamepass && (
+                                           <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-tighter ${isExpired ? 'bg-red-600 text-white' : isExpiring ? 'bg-yellow-500 text-black' : 'bg-white/10 text-gray-400'}`}>
+                                              <Clock className="w-3 h-3" /> 
+                                              {isExpired ? 'EXPIRADO' : `${daysLeft} DIAS RESTANTES`}
+                                           </div>
+                                        )}
+                                     </div>
+                                     <div>
+                                        <h4 className="text-xl font-black text-white italic uppercase">{lic.game_title}</h4>
+                                        <p className="text-xs text-gray-500 font-bold uppercase mt-1">{lic.customer_name} • {lic.customer_email}</p>
+                                     </div>
+                                     <div className="grid grid-cols-2 gap-4 bg-white/5 p-4 rounded-2xl">
+                                        <div>
+                                           <p className="text-[8px] text-gray-500 font-black uppercase">Conta Entregue</p>
+                                           <p className="text-white text-xs font-mono select-all">{lic.assigned_email || 'Não atribuída'}</p>
+                                        </div>
+                                        <div>
+                                           <p className="text-[8px] text-gray-500 font-black uppercase">Senha</p>
+                                           <p className="text-white text-xs font-mono select-all">{lic.assigned_password || '********'}</p>
+                                        </div>
+                                     </div>
+                                  </div>
+
+                                  {lic.is_gamepass && (
+                                     <div className="bg-black/40 p-6 rounded-3xl border border-white/5 min-w-[250px] space-y-3">
+                                        <p className="text-[9px] text-[var(--neon-green)] font-black uppercase tracking-widest text-center border-b border-white/5 pb-2">ASSINATURA</p>
+                                        <div className="flex justify-between items-center text-xs">
+                                           <span className="text-gray-500 font-bold">Início:</span>
+                                           <span className="text-white">{lic.start_date ? new Date(lic.start_date).toLocaleDateString('pt-BR') : '-'}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center text-xs">
+                                           <span className="text-gray-500 font-bold">Fim:</span>
+                                           <span className={`font-black ${isExpired ? 'text-red-500' : 'text-white'}`}>{lic.end_date ? new Date(lic.end_date).toLocaleDateString('pt-BR') : '-'}</span>
+                                        </div>
+                                        {isExpiring && !isExpired && (
+                                           <div className="bg-yellow-500/10 text-yellow-500 p-2 rounded-xl text-[9px] font-black uppercase text-center border border-yellow-500/20 mt-2">
+                                              <AlertTriangle className="w-3 h-3 inline-block mr-1" /> Renovar em breve
+                                           </div>
+                                        )}
+                                     </div>
+                                  )}
+
+                                  <div className="flex flex-col gap-2 justify-center">
+                                     <button onClick={() => { setEditingLicense(lic); setShowLicenseModal(true); }} className="bg-white/5 p-4 rounded-2xl text-blue-500 hover:bg-blue-600 hover:text-white transition-all"><Edit2 className="w-5 h-5" /></button>
+                                     <button onClick={() => setLicenseToDelete(lic.id)} className="bg-white/5 p-4 rounded-2xl text-red-500 hover:bg-red-600 hover:text-white transition-all"><Trash2 className="w-5 h-5" /></button>
+                                  </div>
+                               </div>
+                            )
+                         })
+                      )}
+                   </div>
+                </div>
+              )}
+           </div>
+        </div>
+      )}
+
+      {/* BOTÃO FLUTUANTE WHATSAPP (APENAS LOGADO) */}
+      {user && (
+        <a 
+          href={`https://wa.me/${siteSettings.whatsapp_number}?text=${encodeURIComponent("Olá RD Digital! Sou cliente cadastrado e preciso de ajuda.")}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="fixed bottom-6 right-6 z-40 bg-[#25D366] text-white p-4 rounded-full shadow-[0_0_30px_rgba(37,211,102,0.4)] hover:scale-110 active:scale-95 transition-all flex items-center justify-center group animate-bounce-in"
+        >
+          <div className="absolute right-full mr-4 bg-white text-black px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+            Suporte VIP
+          </div>
+          <MessageCircle className="w-8 h-8 fill-white/20" />
+        </a>
+      )}
     </div>
   );
 };
