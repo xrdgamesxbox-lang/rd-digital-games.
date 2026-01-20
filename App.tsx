@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { 
   ShoppingCart, Star, Settings,
   LogOut, Edit2, Trash2, Plus, X, Loader2, Lock, Mail, UserPlus, LogIn,
-  Instagram, Facebook, AlertTriangle, CheckCircle, Zap, Palette, Image as ImageIcon, Gamepad2, Layers, Check, Wifi, WifiOff, Terminal, Copy, HelpCircle, Rocket, ShieldCheck, RefreshCcw, ExternalLink, Activity, Globe, Search, Info, Download, Box, Monitor, AlertOctagon, Wallet, MessageCircle, Save, TrendingUp, Users, ShoppingBag, Eye, Clock, Type, Send, Languages, Phone, CreditCard, Calendar, Tag, ChevronRight, Link as LinkIcon, ArrowUp, ArrowDown, UserCheck, Key, ListChecks, DollarSign, History, GripVertical, FileText
+  Instagram, Facebook, AlertTriangle, CheckCircle, Zap, Palette, Image as ImageIcon, Gamepad2, Layers, Check, Wifi, WifiOff, Terminal, Copy, HelpCircle, Rocket, ShieldCheck, RefreshCcw, ExternalLink, Activity, Globe, Search, Info, Download, Box, Monitor, AlertOctagon, Wallet, MessageCircle, Save, TrendingUp, Users, ShoppingBag, Eye, Clock, Type, Send, Languages, Phone, CreditCard, Calendar, Tag, ChevronRight, Link as LinkIcon, ArrowUp, ArrowDown, UserCheck, Key, ListChecks, DollarSign, History, GripVertical, FileText, Youtube, Video
 } from 'lucide-react';
 import { Game, User, CartItem, License } from './types.ts';
 import GameCard from './components/GameCard.tsx';
@@ -102,6 +102,7 @@ const App: React.FC = () => {
     how_it_works_subtitle: 'Entenda tudo sobre a mídia digital e não tenha dúvidas!',
     how_it_works_btn: 'Saiba mais',
     how_it_works_image: 'https://images.unsplash.com/photo-1605901309584-818e25960b8f?q=80&w=2000&auto=format&fit=crop',
+    how_it_works_video_url: '', // Novo campo para vídeo
     text_parental: 'A Conta Parental é uma licença compartilhada oficial. Você joga no seu próprio perfil pessoal, conquista troféus e salva seu progresso. O método de acesso é simples e enviamos um tutorial passo a passo.',
     text_exclusive: 'A Conta Exclusiva é totalmente sua. Você recebe e-mail e senha, pode alterar os dados de segurança e compartilhar com um amigo se desejar (Configuração de Home Principal). É como comprar o jogo digitalmente na loja.',
 
@@ -134,6 +135,40 @@ const App: React.FC = () => {
   });
 
   const [games, setGames] = useState<Game[]>([]);
+
+  // Helper para extrair ID do YouTube e formatar URL de forma robusta
+  const getYouTubeEmbedUrl = (url: string) => {
+    if (!url) return null;
+    try {
+      let videoId = null;
+      const cleanUrl = url.trim();
+
+      // Tentativa 1: Regex Padrão (watch?v=, embed/, youtu.be/)
+      const regex1 = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
+      const match1 = cleanUrl.match(regex1);
+      if (match1 && match1[1]) {
+        videoId = match1[1];
+      }
+
+      // Tentativa 2: Shorts
+      if (!videoId) {
+        const regex2 = /youtube\.com\/shorts\/([^"&?\/\s]{11})/;
+        const match2 = cleanUrl.match(regex2);
+        if (match2 && match2[1]) {
+          videoId = match2[1];
+        }
+      }
+
+      if (!videoId) return null;
+      
+      // Removendo 'enablejsapi=1' e 'origin' que estavam causando o Erro 153
+      // O modo "privacidade aprimorada" ou simples embed é mais compatível
+      return `https://www.youtube.com/embed/${videoId}?rel=0&showinfo=0&modestbranding=1`;
+    } catch (e) {
+      console.error("Erro ao processar URL do YouTube:", e);
+      return null;
+    }
+  };
 
   // Carrega dados iniciais e usuário
   useEffect(() => {
@@ -900,12 +935,27 @@ const App: React.FC = () => {
                   {siteSettings.how_it_works_btn}
                 </button>
              </div>
-             <div className="flex-1 relative z-10">
-                <img 
-                  src={siteSettings.how_it_works_image} 
-                  className="w-full max-w-md mx-auto rounded-3xl shadow-[0_20px_60px_rgba(0,0,0,0.5)] transform hover:rotate-2 transition-transform duration-700"
-                  alt="Console"
-                />
+             <div className="flex-1 relative z-10 w-full">
+                {getYouTubeEmbedUrl(siteSettings.how_it_works_video_url) ? (
+                   <div className="relative w-full aspect-video rounded-3xl overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.5)] border border-white/10 hover:shadow-[0_20px_60px_var(--neon-glow)] transition-all">
+                      <iframe 
+                        width="100%" 
+                        height="100%" 
+                        src={getYouTubeEmbedUrl(siteSettings.how_it_works_video_url)!} 
+                        title="YouTube video player" 
+                        frameBorder="0" 
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+                        referrerPolicy="strict-origin-when-cross-origin"
+                        allowFullScreen
+                      ></iframe>
+                   </div>
+                ) : (
+                   <img 
+                     src={siteSettings.how_it_works_image} 
+                     className="w-full max-w-md mx-auto rounded-3xl shadow-[0_20px_60px_rgba(0,0,0,0.5)] transform hover:rotate-2 transition-transform duration-700"
+                     alt="Console"
+                   />
+                )}
              </div>
           </div>
         </section>
@@ -1127,9 +1177,40 @@ const App: React.FC = () => {
                      </button>
                   </div>
 
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8">
+                    
+                    {/* CARTÃO DE TUTORIAIS & MÍDIA (NOVO) */}
+                    <div className="bg-[#070709] border border-[var(--neon-green)]/30 p-10 rounded-[4rem] space-y-6 shadow-[0_0_50px_rgba(204,255,0,0.05)] order-first xl:order-none">
+                        <div className="flex items-center gap-3 text-[var(--neon-green)] mb-2">
+                           <Video className="w-5 h-5" />
+                           <h3 className="text-[12px] font-black uppercase italic">TUTORIAIS & COMO FUNCIONA</h3>
+                        </div>
+                        <div className="space-y-4">
+                           <div className="space-y-1">
+                              <label className="text-[8px] font-black text-gray-600 uppercase flex items-center gap-1">Vídeo Tutorial (YouTube URL) <Youtube className="w-3 h-3 text-red-500" /></label>
+                              <input type="text" value={siteSettings.how_it_works_video_url || ''} onChange={e => updateSetting('how_it_works_video_url', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" placeholder="https://youtube.com/..." />
+                           </div>
+                           <div className="space-y-1">
+                              <label className="text-[8px] font-black text-gray-600 uppercase">Imagem da Seção (Se não houver vídeo)</label>
+                              <input type="text" value={siteSettings.how_it_works_image || ''} onChange={e => updateSetting('how_it_works_image', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                           </div>
+                           <div className="space-y-1">
+                              <label className="text-[8px] font-black text-gray-600 uppercase">Título da Seção</label>
+                              <input type="text" value={siteSettings.how_it_works_title || ''} onChange={e => updateSetting('how_it_works_title', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                           </div>
+                           <div className="space-y-1">
+                              <label className="text-[8px] font-black text-gray-600 uppercase">Explicação Conta Parental</label>
+                              <textarea rows={3} value={siteSettings.text_parental || ''} onChange={e => updateSetting('text_parental', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                           </div>
+                           <div className="space-y-1">
+                              <label className="text-[8px] font-black text-gray-600 uppercase">Explicação Conta Exclusiva</label>
+                              <textarea rows={3} value={siteSettings.text_exclusive || ''} onChange={e => updateSetting('text_exclusive', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                           </div>
+                        </div>
+                    </div>
+
                     <div className="bg-[#070709] border border-white/5 p-10 rounded-[4rem] space-y-6">
-                       <div className="flex items-center gap-3 text-[var(--neon-green)] mb-2">
+                       <div className="flex items-center gap-3 text-blue-500 mb-2">
                           <Palette className="w-5 h-5" />
                           <h3 className="text-[12px] font-black uppercase italic">IDENTIDADE VISUAL</h3>
                        </div>
@@ -1184,13 +1265,13 @@ const App: React.FC = () => {
                        </div>
                     </div>
 
-                    <div className="bg-[#070709] border border-white/5 p-10 rounded-[4rem] space-y-6">
-                       <div className="flex items-center gap-3 text-blue-500 mb-2">
+                    <div className="bg-[#070709] border border-white/5 p-10 rounded-[4rem] space-y-6 xl:col-span-3">
+                       <div className="flex items-center gap-3 text-gray-500 mb-2">
                           <Languages className="w-5 h-5" />
                           <h3 className="text-[12px] font-black uppercase italic">DICIONÁRIO DO SITE</h3>
                        </div>
                        
-                       <div className="space-y-8 max-h-[500px] overflow-y-auto custom-scrollbar pr-2">
+                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                           
                           {/* LOGIN & GERAL */}
                           <div className="space-y-4">
@@ -1223,31 +1304,6 @@ const App: React.FC = () => {
                             <div className="space-y-1">
                               <label className="text-[8px] font-black text-gray-600 uppercase">Descrição</label>
                               <textarea rows={3} value={siteSettings.hero_description || ''} onChange={e => updateSetting('hero_description', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
-                            </div>
-                          </div>
-
-                          {/* COMO FUNCIONA */}
-                          <div className="space-y-4">
-                            <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest border-b border-white/10 pb-1">SEÇÃO COMO FUNCIONA</p>
-                            <div className="space-y-1">
-                              <label className="text-[8px] font-black text-gray-600 uppercase">Título Seção</label>
-                              <input type="text" value={siteSettings.how_it_works_title || ''} onChange={e => updateSetting('how_it_works_title', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
-                            </div>
-                            <div className="space-y-1">
-                              <label className="text-[8px] font-black text-gray-600 uppercase">Subtítulo Seção</label>
-                              <input type="text" value={siteSettings.how_it_works_subtitle || ''} onChange={e => updateSetting('how_it_works_subtitle', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
-                            </div>
-                            <div className="space-y-1">
-                              <label className="text-[8px] font-black text-gray-600 uppercase">Texto Botão</label>
-                              <input type="text" value={siteSettings.how_it_works_btn || ''} onChange={e => updateSetting('how_it_works_btn', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
-                            </div>
-                            <div className="space-y-1">
-                              <label className="text-[8px] font-black text-gray-600 uppercase">Explicação Conta Parental (Modal)</label>
-                              <textarea rows={4} value={siteSettings.text_parental || ''} onChange={e => updateSetting('text_parental', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
-                            </div>
-                            <div className="space-y-1">
-                              <label className="text-[8px] font-black text-gray-600 uppercase">Explicação Conta Exclusiva (Modal)</label>
-                              <textarea rows={4} value={siteSettings.text_exclusive || ''} onChange={e => updateSetting('text_exclusive', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
                             </div>
                           </div>
 
@@ -1357,221 +1413,8 @@ const App: React.FC = () => {
                   </div>
                 </div>
               )}
-
-              {/* ... (Resto do conteúdo da aba de produtos e licenças mantido idêntico) ... */}
-              {activeAdminTab === 'products' && (
-                <div className="bg-[#070709] border border-white/5 p-10 rounded-[4rem] space-y-6 animate-bounce-in relative">
-                    <div className="flex items-center justify-between flex-wrap gap-4">
-                       <div className="flex items-center gap-4">
-                          <h3 className="text-xl font-black uppercase italic text-white">VITRINE E ORDEM</h3>
-                          <div className="bg-white/10 text-white px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border border-white/5">
-                             {filteredAdminGames.length} ITENS
-                          </div>
-                          {selectedGameIds.length > 0 && (
-                            <div className="bg-[var(--neon-green)] text-black px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest animate-bounce-in">
-                               {selectedGameIds.length} SELECIONADOS
-                            </div>
-                          )}
-                       </div>
-                       
-                       <div className="relative w-full max-w-xs group">
-                          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 group-focus-within:text-[var(--neon-green)] transition-colors" />
-                          <input 
-                             type="text" 
-                             value={adminSearchTerm}
-                             onChange={e => setAdminSearchTerm(e.target.value)}
-                             placeholder="Filtrar por nome..." 
-                             className="w-full bg-black/40 border border-white/10 rounded-2xl py-3 pl-10 pr-4 text-white text-xs outline-none focus:border-[var(--neon-green)]/50 transition-all"
-                          />
-                       </div>
-                    </div>
-
-                    {selectedGameIds.length > 0 && (
-                       <div className="sticky top-0 z-50 bg-[var(--neon-green)]/10 backdrop-blur-md border border-[var(--neon-green)]/20 p-4 rounded-3xl flex items-center justify-between animate-bounce-in mb-4">
-                          <div className="flex items-center gap-2 text-[var(--neon-green)]">
-                             <ListChecks className="w-5 h-5" />
-                             <span className="text-[10px] font-black uppercase tracking-widest">AÇÕES PARA SELECIONADOS</span>
-                          </div>
-                          <div className="flex gap-2">
-                             <button onClick={() => setShowBulkPriceModal(true)} className="bg-[var(--neon-green)] text-black px-6 py-3 rounded-xl font-black uppercase text-[9px] tracking-widest hover:scale-105 transition-transform flex items-center gap-2">
-                                <DollarSign className="w-3 h-3" /> EDITAR PREÇOS E OPÇÕES ({selectedGameIds.length})
-                             </button>
-                             <button onClick={() => setSelectedGameIds([])} className="bg-white/10 text-white px-4 py-3 rounded-xl font-black uppercase text-[9px] tracking-widest hover:bg-white/20 transition-colors">
-                                CANCELAR
-                             </button>
-                          </div>
-                       </div>
-                    )}
-
-                    <div className="max-h-[60vh] overflow-y-auto custom-scrollbar space-y-3 pr-2">
-                       {filteredAdminGames.length === 0 ? (
-                          <div className="text-center py-10 opacity-30">
-                             <Search className="w-12 h-12 mx-auto mb-2" />
-                             <p className="text-[10px] font-black uppercase">Nenhum produto encontrado</p>
-                          </div>
-                       ) : (
-                          filteredAdminGames.map((game, index) => (
-                           <div 
-                             key={game.id} 
-                             draggable={!adminSearchTerm} 
-                             onDragStart={(e) => handleDragStart(e, index)}
-                             onDragEnd={handleDragEnd}
-                             onDragOver={handleDragOver}
-                             onDrop={(e) => handleDrop(e, index)}
-                             className={`flex items-center gap-4 bg-black/40 border p-4 rounded-3xl group transition-all ${selectedGameIds.includes(game.id) ? 'border-[var(--neon-green)]/50 bg-[var(--neon-green)]/5' : 'border-white/5 hover:border-white/10'} ${draggedIndex === index ? 'opacity-50 border-dashed border-[var(--neon-green)]' : ''}`}
-                           >
-                              
-                              {!adminSearchTerm && (
-                                <div className="cursor-grab active:cursor-grabbing p-2 text-gray-600 hover:text-white">
-                                   <GripVertical className="w-5 h-5" />
-                                </div>
-                              )}
-
-                              <div className="flex items-center justify-center p-2">
-                                 <input 
-                                    type="checkbox" 
-                                    checked={selectedGameIds.includes(game.id)} 
-                                    onChange={() => toggleGameSelection(game.id)}
-                                    className="w-5 h-5 accent-[var(--neon-green)] cursor-pointer"
-                                 />
-                              </div>
-
-                              <div className="flex flex-col gap-1">
-                                 <button onClick={() => handleMoveGame(game.id, 'up')} disabled={index === 0 || !!adminSearchTerm} className="p-1.5 bg-white/5 rounded-lg text-gray-500 hover:text-[var(--neon-green)] disabled:opacity-20 hover:disabled:text-gray-500 transition-colors"><ArrowUp className="w-3 h-3" /></button>
-                                 <button onClick={() => handleMoveGame(game.id, 'down')} disabled={index === games.length - 1 || !!adminSearchTerm} className="p-1.5 bg-white/5 rounded-lg text-gray-500 hover:text-[var(--neon-green)] disabled:opacity-20 hover:disabled:text-gray-500 transition-colors"><ArrowDown className="w-3 h-3" /></button>
-                              </div>
-                              <img src={game.image_url} className="w-12 h-16 rounded-xl object-cover transition-transform group-hover:scale-105" />
-                              <div className="flex-grow">
-                                 <p className="text-[11px] text-white font-black uppercase italic line-clamp-1">{game.title}</p>
-                                 <div className="flex items-center gap-2 mt-1 flex-wrap">
-                                    <div className="flex items-center gap-1.5">
-                                      <Tag className="w-3 h-3 text-[var(--neon-green)]" />
-                                      <p className="text-[8px] text-gray-500 font-black uppercase tracking-widest">{game.category}</p>
-                                    </div>
-                                    
-                                    {game.updated_at && (
-                                      <>
-                                         <span className="text-gray-700 mx-1">•</span>
-                                         <p className="text-[8px] text-gray-600 font-bold uppercase flex items-center gap-1">
-                                            Atualizado: {new Date(game.updated_at).toLocaleDateString('pt-BR')}
-                                         </p>
-                                      </>
-                                    )}
-
-                                    {!game.is_available && (
-                                       <span className="text-[8px] bg-red-600 text-white px-2 py-0.5 rounded-full font-black uppercase ml-2">INDISPONÍVEL</span>
-                                    )}
-                                 </div>
-                              </div>
-                              <div className="flex gap-2">
-                                 <button onClick={() => {setEditingGame(game); setShowAdminModal(true)}} className="p-4 bg-white/5 text-blue-500 rounded-2xl hover:bg-blue-600 hover:text-white transition-all"><Edit2 className="w-4 h-4"/></button>
-                                 <button onClick={() => setGameToDelete(game.id)} className="p-4 bg-white/5 text-red-500 rounded-2xl hover:bg-red-600 hover:text-white transition-all"><Trash2 className="w-4 h-4"/></button>
-                              </div>
-                           </div>
-                         ))
-                       )}
-                    </div>
-                </div>
-              )}
-
-              {activeAdminTab === 'licenses' && (
-                <div className="space-y-8 animate-bounce-in">
-                   <div className="flex justify-between items-center">
-                      <h3 className="text-2xl font-black italic uppercase text-white">PAINEL DE ENTREGAS & GAME PASS</h3>
-                      <button onClick={createNewLicense} className="bg-[var(--neon-green)] text-black px-6 py-4 rounded-2xl font-black uppercase text-xs flex items-center gap-2 shadow-lg hover:scale-105 transition-transform">
-                         <Plus className="w-4 h-4" /> Nova Licença
-                      </button>
-                   </div>
-
-                   <div className="grid grid-cols-1 gap-6">
-                      {licenses.length === 0 ? (
-                         <div className="text-center py-20 bg-white/5 rounded-[3rem] border border-white/5">
-                            <Key className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-                            <p className="text-gray-500 font-black uppercase text-xs">Nenhuma licença cadastrada</p>
-                         </div>
-                      ) : (
-                         licenses.map(lic => {
-                            const daysLeft = lic.is_gamepass ? calculateDaysRemaining(lic.end_date) : null;
-                            const isExpiring = daysLeft !== null && daysLeft <= 10 && daysLeft >= 0;
-                            const isExpired = daysLeft !== null && daysLeft < 0;
-
-                            return (
-                               <div key={lic.id} className="bg-[#070709] border border-white/10 rounded-[2.5rem] p-8 flex flex-col lg:flex-row gap-8 relative group hover:border-[var(--neon-green)]/30 transition-all">
-                                  <div className="flex-1 space-y-4">
-                                     <div className="flex items-center gap-3">
-                                        <div className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-tighter ${lic.product_category === 'gamepass' ? 'bg-green-600 text-white' : 'bg-orange-600 text-white'}`}>
-                                           {lic.product_category === 'gamepass' ? 'GAME PASS' : 'JOGO COMPLETO'}
-                                        </div>
-                                        {lic.is_gamepass && (
-                                           <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-tighter ${isExpired ? 'bg-red-600 text-white' : isExpiring ? 'bg-yellow-500 text-black' : 'bg-white/10 text-gray-400'}`}>
-                                              <Clock className="w-3 h-3" /> 
-                                              {isExpired ? 'EXPIRADO' : `${daysLeft} DIAS RESTANTES`}
-                                           </div>
-                                        )}
-                                     </div>
-                                     <div>
-                                        <h4 className="text-xl font-black text-white italic uppercase">{lic.game_title}</h4>
-                                        <p className="text-xs text-gray-500 font-bold uppercase mt-1">{lic.customer_name} • {lic.customer_email}</p>
-                                     </div>
-                                     <div className="grid grid-cols-2 gap-4 bg-white/5 p-4 rounded-2xl">
-                                        <div>
-                                           <p className="text-[8px] text-gray-500 font-black uppercase">Conta Entregue</p>
-                                           <p className="text-white text-xs font-mono select-all">{lic.assigned_email || 'Não atribuída'}</p>
-                                        </div>
-                                        <div>
-                                           <p className="text-[8px] text-gray-500 font-black uppercase">Senha</p>
-                                           <p className="text-white text-xs font-mono select-all">{lic.assigned_password || '********'}</p>
-                                        </div>
-                                     </div>
-                                  </div>
-
-                                  {lic.is_gamepass && (
-                                     <div className="bg-black/40 p-6 rounded-3xl border border-white/5 min-w-[250px] space-y-3">
-                                        <p className="text-[9px] text-[var(--neon-green)] font-black uppercase tracking-widest text-center border-b border-white/5 pb-2">ASSINATURA</p>
-                                        <div className="flex justify-between items-center text-xs">
-                                           <span className="text-gray-500 font-bold">Início:</span>
-                                           <span className="text-white">{lic.start_date ? new Date(lic.start_date).toLocaleDateString('pt-BR') : '-'}</span>
-                                        </div>
-                                        <div className="flex justify-between items-center text-xs">
-                                           <span className="text-gray-500 font-bold">Fim:</span>
-                                           <span className={`font-black ${isExpired ? 'text-red-500' : 'text-white'}`}>{lic.end_date ? new Date(lic.end_date).toLocaleDateString('pt-BR') : '-'}</span>
-                                        </div>
-                                        {isExpiring && !isExpired && (
-                                           <div className="bg-yellow-500/10 text-yellow-500 p-2 rounded-xl text-[9px] font-black uppercase text-center border border-yellow-500/20 mt-2">
-                                              <AlertTriangle className="w-3 h-3 inline-block mr-1" /> Renovar em breve
-                                           </div>
-                                        )}
-                                     </div>
-                                  )}
-
-                                  <div className="flex flex-col gap-2 justify-center">
-                                     <button onClick={() => { setEditingLicense(lic); setShowLicenseModal(true); }} className="bg-white/5 p-4 rounded-2xl text-blue-500 hover:bg-blue-600 hover:text-white transition-all"><Edit2 className="w-5 h-5" /></button>
-                                     <button onClick={() => setLicenseToDelete(lic.id)} className="bg-white/5 p-4 rounded-2xl text-red-500 hover:bg-red-600 hover:text-white transition-all"><Trash2 className="w-5 h-5" /></button>
-                                  </div>
-                               </div>
-                            )
-                         })
-                      )}
-                   </div>
-                </div>
-              )}
            </div>
         </div>
-      )}
-
-      {/* BOTÃO FLUTUANTE WHATSAPP (APENAS LOGADO) */}
-      {user && (
-        <a 
-          href={`https://wa.me/${siteSettings.whatsapp_number}?text=${encodeURIComponent("Olá RD Digital! Sou cliente cadastrado e preciso de ajuda.")}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="fixed bottom-6 right-6 z-40 bg-[#25D366] text-white p-4 rounded-full shadow-[0_0_30px_rgba(37,211,102,0.4)] hover:scale-110 active:scale-95 transition-all flex items-center justify-center group animate-bounce-in"
-        >
-          <div className="absolute right-full mr-4 bg-white text-black px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-            Suporte VIP
-          </div>
-          <MessageCircle className="w-8 h-8 fill-white/20" />
-        </a>
       )}
     </div>
   );
