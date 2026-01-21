@@ -11,6 +11,7 @@ import BulkPriceModal from './components/BulkPriceModal.tsx';
 import CartDrawer from './components/CartDrawer.tsx';
 import ProductPage from './components/ProductPage.tsx'; 
 import RefundPolicy from './components/RefundPolicy.tsx';
+import GamePassSEO from './components/GamePassSEO.tsx';
 import { supabase } from './services/supabaseClient.ts';
 import { searchGameData } from './services/geminiService.ts';
 
@@ -35,8 +36,9 @@ const App: React.FC = () => {
   // Estado para Produto Aberto (Detalhes)
   const [selectedProduct, setSelectedProduct] = useState<Game | null>(null);
   
-  // Estado para Página de Política de Reembolso
+  // Estado para Página de Política de Reembolso e SEO
   const [showRefundPolicy, setShowRefundPolicy] = useState(false);
+  const [showGamePassSEO, setShowGamePassSEO] = useState(false);
 
   // Estados para Drag and Drop
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
@@ -140,30 +142,16 @@ const App: React.FC = () => {
   const getYouTubeEmbedUrl = (url: string) => {
     if (!url) return null;
     try {
-      let videoId = null;
-      const cleanUrl = url.trim();
-
-      // Tentativa 1: Regex Padrão (watch?v=, embed/, youtu.be/)
-      const regex1 = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
-      const match1 = cleanUrl.match(regex1);
-      if (match1 && match1[1]) {
-        videoId = match1[1];
-      }
-
-      // Tentativa 2: Shorts
-      if (!videoId) {
-        const regex2 = /youtube\.com\/shorts\/([^"&?\/\s]{11})/;
-        const match2 = cleanUrl.match(regex2);
-        if (match2 && match2[1]) {
-          videoId = match2[1];
-        }
-      }
-
-      if (!videoId) return null;
+      // Regex super abrangente para capturar IDs de 11 caracteres
+      // Suporta: youtu.be, youtube.com/watch, youtube.com/embed, youtube.com/v, youtube.com/shorts
+      const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
+      const match = url.match(regex);
       
-      // Removendo 'enablejsapi=1' e 'origin' que estavam causando o Erro 153
-      // O modo "privacidade aprimorada" ou simples embed é mais compatível
-      return `https://www.youtube.com/embed/${videoId}?rel=0&showinfo=0&modestbranding=1`;
+      if (match && match[1]) {
+        // Retorna a URL mais simples possível para evitar bloqueios de API
+        return `https://www.youtube.com/embed/${match[1]}?rel=0`;
+      }
+      return null;
     } catch (e) {
       console.error("Erro ao processar URL do YouTube:", e);
       return null;
@@ -184,6 +172,10 @@ const App: React.FC = () => {
     // Check for Policy Page
     if (params.get('page') === 'politica-de-reembolso') {
         setShowRefundPolicy(true);
+    }
+    // Check for Game Pass SEO Page
+    if (params.get('page') === 'game-pass-ultimate') {
+        setShowGamePassSEO(true);
     }
 
     if (params.get('success')) {
@@ -250,6 +242,8 @@ const App: React.FC = () => {
     if (!gameId) setSelectedProduct(null);
     if (page !== 'politica-de-reembolso') setShowRefundPolicy(false);
     if (page === 'politica-de-reembolso') setShowRefundPolicy(true);
+    if (page !== 'game-pass-ultimate') setShowGamePassSEO(false);
+    if (page === 'game-pass-ultimate') setShowGamePassSEO(true);
   };
 
   // Handle Open Product Page (Updates URL)
@@ -281,6 +275,23 @@ const App: React.FC = () => {
   // Handle Close Policy
   const handleCloseRefundPolicy = () => {
       setShowRefundPolicy(false);
+      try {
+          window.history.pushState({ path: window.location.pathname }, '', window.location.pathname);
+      } catch (e) { console.warn(e); }
+  };
+
+  // Handle Open Game Pass SEO
+  const handleOpenGamePassSEO = () => {
+      setShowGamePassSEO(true);
+      try {
+          const newUrl = `${window.location.pathname}?page=game-pass-ultimate`;
+          window.history.pushState({ path: newUrl }, '', newUrl);
+      } catch (e) { console.warn(e); }
+  };
+
+  // Handle Close Game Pass SEO
+  const handleCloseGamePassSEO = () => {
+      setShowGamePassSEO(false);
       try {
           window.history.pushState({ path: window.location.pathname }, '', window.location.pathname);
       } catch (e) { console.warn(e); }
@@ -737,6 +748,14 @@ const App: React.FC = () => {
           <RefundPolicy onClose={handleCloseRefundPolicy} />
       )}
 
+      {/* PÁGINA DE SEO GAME PASS */}
+      {showGamePassSEO && (
+          <GamePassSEO 
+            onClose={handleCloseGamePassSEO} 
+            whatsappNumber={siteSettings.whatsapp_number}
+          />
+      )}
+
       {/* MODAL ADM */}
       {showAdminModal && (
         <AdminModal 
@@ -945,7 +964,6 @@ const App: React.FC = () => {
                         title="YouTube video player" 
                         frameBorder="0" 
                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
-                        referrerPolicy="strict-origin-when-cross-origin"
                         allowFullScreen
                       ></iframe>
                    </div>
@@ -1058,6 +1076,9 @@ const App: React.FC = () => {
                </div>
                
                <div className="flex flex-col gap-4">
+                  <a href="?page=game-pass-ultimate" onClick={(e) => { e.preventDefault(); handleOpenGamePassSEO(); }} className="text-[10px] text-gray-400 hover:text-[var(--neon-green)] font-black uppercase tracking-widest flex items-center gap-2 justify-center md:justify-start transition-colors">
+                     <Gamepad2 className="w-4 h-4" /> Game Pass Ultimate Barato
+                  </a>
                   <a href="?page=politica-de-reembolso" onClick={(e) => { e.preventDefault(); handleOpenRefundPolicy(); }} className="text-[10px] text-gray-400 hover:text-[var(--neon-green)] font-black uppercase tracking-widest flex items-center gap-2 justify-center md:justify-start transition-colors">
                      <FileText className="w-4 h-4" /> Política de Devolução & Reembolso
                   </a>
