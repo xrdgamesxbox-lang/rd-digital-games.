@@ -142,13 +142,9 @@ const App: React.FC = () => {
   const getYouTubeEmbedUrl = (url: string) => {
     if (!url) return null;
     try {
-      // Regex super abrangente para capturar IDs de 11 caracteres
-      // Suporta: youtu.be, youtube.com/watch, youtube.com/embed, youtube.com/v, youtube.com/shorts
       const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
       const match = url.match(regex);
-      
       if (match && match[1]) {
-        // Retorna a URL mais simples possível para evitar bloqueios de API
         return `https://www.youtube.com/embed/${match[1]}?rel=0`;
       }
       return null;
@@ -489,8 +485,6 @@ const App: React.FC = () => {
     setIsAdminPanelOpen(false);
   };
 
-  // Funções de Licença e ADM omitidas para brevidade (mantidas iguais ao original)
-  // ... (handleSaveLicense, handleDeleteLicense, createNewLicense, calculateDaysRemaining, toggleGameSelection, handleBulkSave, handleDragStart, handleDragEnd, handleDragOver, handleDrop, handleMoveGame, handleSaveGame, handleDeleteGame, handleSaveSettings, updateSetting)
   const handleSaveLicense = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingLicense) return;
@@ -1434,7 +1428,232 @@ const App: React.FC = () => {
                   </div>
                 </div>
               )}
+
+              {/* ABA PRODUTOS (RESTAURADA E CORRIGIDA) */}
+              {activeAdminTab === 'products' && (
+                <div className="space-y-8 animate-bounce-in">
+                  <div className="flex flex-col md:flex-row gap-6 items-center justify-between">
+                     <div className="relative w-full md:w-96 group">
+                       <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 group-focus-within:text-[var(--neon-green)] transition-colors" />
+                       <input 
+                         type="text" 
+                         value={adminSearchTerm}
+                         onChange={e => setAdminSearchTerm(e.target.value)}
+                         placeholder="Filtrar por nome..."
+                         className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-14 pr-6 text-white text-xs outline-none focus:border-[var(--neon-green)]/40 transition-all"
+                       />
+                     </div>
+                     <div className="flex gap-4">
+                       <button
+                         onClick={() => setShowBulkPriceModal(true)}
+                         disabled={selectedGameIds.length === 0}
+                         className={`px-6 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest border transition-all flex items-center gap-2 ${
+                           selectedGameIds.length > 0
+                             ? 'bg-[var(--neon-green)]/20 text-[var(--neon-green)] border-[var(--neon-green)]/30 hover:bg-[var(--neon-green)] hover:text-black cursor-pointer'
+                             : 'bg-white/5 text-gray-600 border-white/5 cursor-not-allowed opacity-50'
+                         }`}
+                       >
+                         <ListChecks className="w-4 h-4" />
+                         {selectedGameIds.length > 0 ? `EDITAR (${selectedGameIds.length})` : 'SELEÇÃO EM MASSA'}
+                       </button>
+
+                       <button onClick={() => {setEditingGame(null); setShowAdminModal(true)}} className="bg-[var(--neon-green)] text-black px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-transform flex items-center gap-2">
+                         <Plus className="w-4 h-4" /> ADICIONAR NOVO
+                       </button>
+                     </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    {filteredAdminGames.map((game, index) => (
+                      <div 
+                        key={game.id} 
+                        draggable 
+                        onDragStart={(e) => handleDragStart(e, index)}
+                        onDragEnd={handleDragEnd}
+                        onDragOver={handleDragOver}
+                        onDrop={(e) => handleDrop(e, index)}
+                        className={`bg-[#0a0a0c] border rounded-[2.5rem] overflow-hidden group hover:-translate-y-2 transition-all relative ${selectedGameIds.includes(game.id) ? 'border-[var(--neon-green)] ring-1 ring-[var(--neon-green)]/50' : 'border-white/5 hover:border-[var(--neon-green)]/30'}`}
+                      >
+                        <div className="absolute top-4 left-4 z-20">
+                           <input 
+                             type="checkbox" 
+                             checked={selectedGameIds.includes(game.id)}
+                             onChange={() => toggleGameSelection(game.id)}
+                             className="w-5 h-5 accent-[var(--neon-green)] cursor-pointer"
+                           />
+                        </div>
+
+                        {/* Controles de Ordenação Mobile */}
+                        <div className="absolute top-4 right-4 z-20 flex flex-col gap-1 md:hidden">
+                           <button onClick={() => handleMoveGame(game.id, 'up')} className="bg-black/50 p-2 rounded-lg text-white"><ArrowUp className="w-3 h-3" /></button>
+                           <button onClick={() => handleMoveGame(game.id, 'down')} className="bg-black/50 p-2 rounded-lg text-white"><ArrowDown className="w-3 h-3" /></button>
+                        </div>
+
+                        <div className="aspect-[4/5] relative">
+                           <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-80"></div>
+                           <img src={game.image_url} className="w-full h-full object-cover" />
+                           <div className="absolute bottom-6 left-6 right-6">
+                              <h3 className="text-white font-black text-lg uppercase italic leading-none mb-1">{game.title}</h3>
+                              <p className="text-[9px] text-[var(--neon-green)] font-black uppercase tracking-widest">{game.category}</p>
+                           </div>
+                        </div>
+                        
+                        <div className="p-6 pt-0 relative z-10 -mt-4">
+                           <div className="flex gap-2">
+                              <button onClick={() => {setEditingGame(game); setShowAdminModal(true)}} className="flex-1 bg-white/10 text-white py-3 rounded-xl font-black text-[9px] uppercase tracking-widest hover:bg-[var(--neon-green)] hover:text-black transition-colors flex items-center justify-center gap-2">
+                                <Edit2 className="w-3 h-3" /> EDITAR
+                              </button>
+                              <button onClick={() => setGameToDelete(game.id)} className="bg-white/5 text-gray-500 py-3 px-4 rounded-xl hover:bg-red-600 hover:text-white transition-colors">
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                           </div>
+                           <div className="flex justify-center mt-4 opacity-0 group-hover:opacity-50 transition-opacity cursor-grab active:cursor-grabbing">
+                              <GripVertical className="w-4 h-4 text-gray-500" />
+                           </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* ABA LICENÇAS E ENTREGAS (RESTAURADA) */}
+              {activeAdminTab === 'licenses' && (
+                <div className="space-y-8 animate-bounce-in">
+                   <div className="flex justify-between items-center bg-[var(--neon-green)]/5 p-8 rounded-[3rem] border border-[var(--neon-green)]/10">
+                      <div>
+                         <h3 className="text-2xl font-black italic uppercase text-white">GERENCIAR ENTREGAS</h3>
+                         <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-1">Controle de Game Pass e Licenças de Jogos</p>
+                      </div>
+                      <button onClick={createNewLicense} className="bg-[var(--neon-green)] text-black px-8 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-[0_0_20px_var(--neon-glow)] hover:scale-105 transition-transform flex items-center gap-2">
+                         <Plus className="w-4 h-4" /> NOVA ENTREGA
+                      </button>
+                   </div>
+
+                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                      {licenses.map(license => {
+                         const daysRemaining = calculateDaysRemaining(license.end_date);
+                         const isExpired = daysRemaining !== null && daysRemaining < 0;
+                         
+                         return (
+                           <div key={license.id} className="bg-[#0a0a0c] border border-white/5 rounded-[2.5rem] p-6 relative group hover:border-[var(--neon-green)]/30 transition-all">
+                              <div className={`absolute top-6 right-6 w-3 h-3 rounded-full ${license.status === 'ativo' && !isExpired ? 'bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)]' : 'bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]'}`}></div>
+                              
+                              <div className="mb-6">
+                                 <p className="text-[9px] text-gray-500 font-black uppercase tracking-widest mb-1">{license.product_category}</p>
+                                 <h4 className="text-white font-black text-lg uppercase italic leading-tight">{license.game_title}</h4>
+                              </div>
+
+                              <div className="space-y-4 mb-6">
+                                 <div className="bg-white/5 p-4 rounded-2xl space-y-1">
+                                    <p className="text-[8px] text-gray-500 font-black uppercase">CLIENTE</p>
+                                    <p className="text-xs text-white font-bold truncate">{license.customer_name}</p>
+                                    <p className="text-[9px] text-gray-400">{license.customer_email}</p>
+                                 </div>
+                                 <div className="bg-white/5 p-4 rounded-2xl space-y-1">
+                                    <p className="text-[8px] text-gray-500 font-black uppercase">DADOS DE ACESSO</p>
+                                    <div className="flex items-center justify-between">
+                                       <p className="text-xs text-white font-bold truncate pr-2">{license.assigned_email}</p>
+                                       <button onClick={() => {navigator.clipboard.writeText(license.assigned_email); showToast('Copiado!')}}><Copy className="w-3 h-3 text-gray-500 hover:text-white" /></button>
+                                    </div>
+                                    <p className="text-[9px] text-gray-400">••••••••</p>
+                                 </div>
+                              </div>
+
+                              {license.is_gamepass && (
+                                 <div className="mb-6 flex items-center justify-between">
+                                    <span className="text-[9px] font-black text-gray-500 uppercase">EXPIRA EM</span>
+                                    <span className={`text-xs font-black uppercase ${isExpired ? 'text-red-500' : 'text-[var(--neon-green)]'}`}>
+                                       {isExpired ? 'EXPIRADO' : `${daysRemaining} DIAS`}
+                                    </span>
+                                 </div>
+                              )}
+
+                              <div className="flex gap-2">
+                                 <button onClick={() => {setEditingLicense(license); setShowLicenseModal(true)}} className="flex-1 bg-white/10 text-white py-3 rounded-xl font-black text-[9px] uppercase tracking-widest hover:bg-blue-600 transition-colors">EDITAR</button>
+                                 <button onClick={() => setLicenseToDelete(license.id)} className="bg-white/5 text-gray-500 py-3 px-4 rounded-xl hover:bg-red-600 hover:text-white transition-colors"><Trash2 className="w-4 h-4" /></button>
+                              </div>
+                           </div>
+                         );
+                      })}
+                   </div>
+                </div>
+              )}
            </div>
+
+           {/* MODAL DE LICENÇAS (RESTAURADO) */}
+           {showLicenseModal && editingLicense && (
+             <div className="fixed inset-0 z-[1000] bg-black/95 backdrop-blur-md flex items-center justify-center p-4">
+                <div className="bg-[#0a0a0c] border border-white/10 w-full max-w-xl rounded-[2.5rem] overflow-hidden shadow-2xl animate-bounce-in">
+                   <div className="p-8 border-b border-white/5 flex justify-between items-center">
+                      <h3 className="text-xl font-black italic uppercase text-white">DADOS DA ENTREGA</h3>
+                      <button onClick={() => setShowLicenseModal(false)} className="bg-white/5 p-2 rounded-xl text-gray-500 hover:text-white"><X className="w-5 h-5" /></button>
+                   </div>
+                   <form onSubmit={handleSaveLicense} className="p-8 space-y-6 max-h-[70vh] overflow-y-auto custom-scrollbar">
+                      <div className="space-y-4">
+                         <div className="space-y-2">
+                            <label className="text-[9px] font-black text-gray-500 uppercase">Nome do Cliente</label>
+                            <input required type="text" value={editingLicense.customer_name} onChange={e => setEditingLicense({...editingLicense, customer_name: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl p-4 text-white text-xs" />
+                         </div>
+                         <div className="space-y-2">
+                            <label className="text-[9px] font-black text-gray-500 uppercase">Email do Cliente</label>
+                            <input required type="email" value={editingLicense.customer_email} onChange={e => setEditingLicense({...editingLicense, customer_email: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl p-4 text-white text-xs" />
+                         </div>
+                         <div className="h-px bg-white/5 my-4"></div>
+                         <div className="space-y-2">
+                            <label className="text-[9px] font-black text-gray-500 uppercase">Produto / Jogo</label>
+                            <input required type="text" value={editingLicense.game_title} onChange={e => setEditingLicense({...editingLicense, game_title: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl p-4 text-white text-xs" />
+                         </div>
+                         <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                               <label className="text-[9px] font-black text-gray-500 uppercase">Categoria</label>
+                               <select value={editingLicense.product_category} onChange={e => setEditingLicense({...editingLicense, product_category: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl p-4 text-white text-xs">
+                                  <option value="jogo">Jogo</option>
+                                  <option value="gamepass">Game Pass</option>
+                               </select>
+                            </div>
+                            <div className="space-y-2">
+                               <label className="text-[9px] font-black text-gray-500 uppercase">Tipo Conta</label>
+                               <select value={editingLicense.account_type} onChange={e => setEditingLicense({...editingLicense, account_type: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl p-4 text-white text-xs">
+                                  <option value="parental">Parental</option>
+                                  <option value="exclusiva">Exclusiva</option>
+                                  <option value="chave">Código 25 Dígitos</option>
+                               </select>
+                            </div>
+                         </div>
+                         <div className="space-y-2">
+                            <label className="text-[9px] font-black text-gray-500 uppercase">Email de Acesso (Login)</label>
+                            <input required type="email" value={editingLicense.assigned_email} onChange={e => setEditingLicense({...editingLicense, assigned_email: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl p-4 text-white text-xs" />
+                         </div>
+                         <div className="space-y-2">
+                            <label className="text-[9px] font-black text-gray-500 uppercase">Senha de Acesso</label>
+                            <input required type="text" value={editingLicense.assigned_password} onChange={e => setEditingLicense({...editingLicense, assigned_password: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl p-4 text-white text-xs" />
+                         </div>
+                         
+                         {/* Lógica Game Pass */}
+                         <div className="flex items-center gap-3 py-2">
+                            <input type="checkbox" checked={editingLicense.is_gamepass} onChange={e => setEditingLicense({...editingLicense, is_gamepass: e.target.checked})} className="w-4 h-4 accent-[var(--neon-green)]" />
+                            <label className="text-[9px] font-black text-gray-500 uppercase">É Assinatura Temporária?</label>
+                         </div>
+
+                         {editingLicense.is_gamepass && (
+                            <div className="grid grid-cols-2 gap-4 bg-white/5 p-4 rounded-xl">
+                               <div className="space-y-2">
+                                  <label className="text-[9px] font-black text-gray-500 uppercase">Início</label>
+                                  <input type="date" value={editingLicense.start_date} onChange={e => setEditingLicense({...editingLicense, start_date: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                               </div>
+                               <div className="space-y-2">
+                                  <label className="text-[9px] font-black text-gray-500 uppercase">Fim</label>
+                                  <input type="date" value={editingLicense.end_date} onChange={e => setEditingLicense({...editingLicense, end_date: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-xs" />
+                               </div>
+                            </div>
+                         )}
+                      </div>
+                      <button type="submit" className="w-full bg-[var(--neon-green)] text-black py-5 rounded-xl font-black uppercase text-xs tracking-widest shadow-xl hover:scale-[1.02] transition-transform">SALVAR DADOS</button>
+                   </form>
+                </div>
+             </div>
+           )}
         </div>
       )}
     </div>
