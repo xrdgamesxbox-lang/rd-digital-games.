@@ -15,7 +15,7 @@ export interface ExtractedGameData {
  */
 export const searchGameData = async (query: string): Promise<ExtractedGameData | null> => {
   try {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     
     // Prompt aprimorado para busca ativa na internet
     const prompt = query.startsWith('http') 
@@ -66,7 +66,7 @@ export const searchGameData = async (query: string): Promise<ExtractedGameData |
 
 export const generateGameDescription = async (title: string): Promise<string> => {
   try {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
