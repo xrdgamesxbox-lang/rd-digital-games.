@@ -1,3 +1,4 @@
+
 import { GoogleGenAI, Type } from "@google/genai";
 
 export interface ExtractedGameData {
@@ -11,29 +12,28 @@ export interface ExtractedGameData {
 
 /**
  * Busca informações de um jogo usando IA + Google Search.
- * Funciona com URLs ou apenas com o título do jogo.
  */
 export const searchGameData = async (query: string): Promise<ExtractedGameData | null> => {
+  // Criamos a instância aqui para garantir que ela pegue a chave injetada pelo Vite
+  const apiKey = process.env.API_KEY;
+  
+  if (!apiKey) {
+    console.error("API_KEY não encontrada no ambiente.");
+    return null;
+  }
+
   try {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const ai = new GoogleGenAI({ apiKey });
     
-    // Prompt aprimorado para busca ativa na internet
     const prompt = query.startsWith('http') 
-      ? `Analise este link: "${query}". Extraia título, preços e encontre a URL de uma imagem de capa (poster vertical oficial).`
-      : `Pesquise na internet sobre o jogo: "${query}". 
-         Sua missão:
-         1. Encontrar o título oficial exato.
-         2. Criar uma descrição curta (3 frases) em português.
-         3. Buscar o preço original e atual médio no Xbox/Steam.
-         4. ENCONTRAR UMA URL DE IMAGEM VÁLIDA (Poster vertical/Capa oficial). 
-            Priorize links que terminem em .jpg ou .png de CDNs oficiais (Xbox, Steam, Epic).
-         Retorne EXCLUSIVAMENTE em JSON.`;
+      ? `Analise este link: "${query}". Extraia título oficial, preços originais e atuais do Xbox, e a URL de uma imagem de capa vertical (poster).`
+      : `Pesquise sobre o jogo: "${query}". Retorne título oficial, descrição curta em PT-BR, preços médios e URL de imagem de capa vertical oficial.`;
 
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
       contents: prompt,
       config: {
-        tools: [{ googleSearch: {} }], // Ativa a busca no Google para encontrar dados reais e imagens
+        tools: [{ googleSearch: {} }],
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.OBJECT,
@@ -50,14 +50,7 @@ export const searchGameData = async (query: string): Promise<ExtractedGameData |
       }
     });
     
-    const result = JSON.parse(response.text || '{}');
-    
-    // Fallback: se a IA não retornar uma URL de imagem válida, tentamos limpar
-    if (result.image_url && !result.image_url.startsWith('http')) {
-      result.image_url = `https://images.unsplash.com/photo-1621259182978-f09e5e2ca09a?q=80&w=2069&auto=format&fit=crop`;
-    }
-
-    return result as ExtractedGameData;
+    return JSON.parse(response.text || '{}') as ExtractedGameData;
   } catch (error) {
     console.error("Erro na pesquisa por IA:", error);
     return null;
@@ -65,21 +58,21 @@ export const searchGameData = async (query: string): Promise<ExtractedGameData |
 };
 
 export const generateGameDescription = async (title: string): Promise<string> => {
+  const apiKey = process.env.API_KEY;
+  if (!apiKey) return "Descrição não disponível.";
+
   try {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-    
+    const ai = new GoogleGenAI({ apiKey });
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
-      contents: `Escreva uma breve e empolgante descrição de marketing em português brasileiro para o jogo "${title}" no Xbox. Foque em recursos de nova geração.`,
+      contents: `Escreva uma descrição épica e vendedora para o jogo "${title}" no Xbox.`,
       config: {
         maxOutputTokens: 300,
-        thinkingConfig: { thinkingBudget: 100 },
-        temperature: 0.8,
+        thinkingConfig: { thinkingBudget: 0 },
       },
     });
     return response.text || "Descrição não disponível.";
   } catch (error) {
-    console.error("Error generating description:", error);
-    return "Falha ao gerar descrição automaticamente.";
+    return "Falha ao gerar descrição.";
   }
 };
