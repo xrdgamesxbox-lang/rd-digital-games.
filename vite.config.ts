@@ -4,13 +4,15 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   plugins: [react()],
-  // Exclui a necessidade do prefixo VITE_ permitindo o uso de process.env.API_KEY conforme exigido
   define: {
-    'process.env.API_KEY': JSON.stringify(process.env.API_KEY)
+    // Usamos uma verificação para não injetar 'undefined' caso a chave não exista no ambiente de build
+    'process.env.API_KEY': JSON.stringify(process.env.API_KEY || '')
   },
   build: {
     outDir: 'dist',
-    sourcemap: false
+    sourcemap: false,
+    // Garante que o build não falhe por avisos de variáveis
+    chunkSizeWarningLimit: 1000
   },
   server: {
     port: 3000

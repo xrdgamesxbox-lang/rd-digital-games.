@@ -11,14 +11,14 @@ export interface ExtractedGameData {
 }
 
 /**
- * Busca informações de um jogo usando IA + Google Search.
+ * Busca informações de um jogo usando Gemini 3 Flash.
+ * A chave é obtida exclusivamente via process.env.API_KEY injetada pelo Vite.
  */
 export const searchGameData = async (query: string): Promise<ExtractedGameData | null> => {
-  // Criamos a instância aqui para garantir que ela pegue a chave injetada pelo Vite
   const apiKey = process.env.API_KEY;
   
-  if (!apiKey) {
-    console.error("API_KEY não encontrada no ambiente.");
+  if (!apiKey || apiKey === "") {
+    console.error("Gemini API: Chave não configurada no ambiente.");
     return null;
   }
 
@@ -26,8 +26,8 @@ export const searchGameData = async (query: string): Promise<ExtractedGameData |
     const ai = new GoogleGenAI({ apiKey });
     
     const prompt = query.startsWith('http') 
-      ? `Analise este link: "${query}". Extraia título oficial, preços originais e atuais do Xbox, e a URL de uma imagem de capa vertical (poster).`
-      : `Pesquise sobre o jogo: "${query}". Retorne título oficial, descrição curta em PT-BR, preços médios e URL de imagem de capa vertical oficial.`;
+      ? `Aja como um especialista em Xbox. Analise o link: "${query}". Extraia: título oficial, preço original, preço atual (promoção) e uma URL de imagem da capa (vertical).`
+      : `Pesquise sobre o jogo: "${query}". Retorne: título oficial, descrição de 3 frases em PT-BR, preços médios e uma URL de imagem de capa vertical (poster).`;
 
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
@@ -52,26 +52,26 @@ export const searchGameData = async (query: string): Promise<ExtractedGameData |
     
     return JSON.parse(response.text || '{}') as ExtractedGameData;
   } catch (error) {
-    console.error("Erro na pesquisa por IA:", error);
+    console.error("Erro na pesquisa Gemini:", error);
     return null;
   }
 };
 
 export const generateGameDescription = async (title: string): Promise<string> => {
   const apiKey = process.env.API_KEY;
-  if (!apiKey) return "Descrição não disponível.";
+  if (!apiKey) return "Descrição automática indisponível.";
 
   try {
     const ai = new GoogleGenAI({ apiKey });
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
-      contents: `Escreva uma descrição épica e vendedora para o jogo "${title}" no Xbox.`,
+      contents: `Escreva uma descrição empolgante para a loja RD Digital Games sobre o jogo "${title}".`,
       config: {
-        maxOutputTokens: 300,
-        thinkingConfig: { thinkingBudget: 0 },
+        maxOutputTokens: 250,
+        thinkingConfig: { thinkingBudget: 0 }
       },
     });
-    return response.text || "Descrição não disponível.";
+    return response.text || "Descrição indisponível.";
   } catch (error) {
     return "Falha ao gerar descrição.";
   }
