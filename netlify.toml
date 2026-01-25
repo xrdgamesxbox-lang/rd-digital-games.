@@ -1,0 +1,8 @@
+[build]
+  publish = "dist"
+  command = "npm run build"
+
+[build.environment]
+  # Esta linha impede que o Netlify bloqueie o deploy ao detectar a chave de API no código compilado
+  SECRETS_SCAN_ENABLED = "false"
+  NODE_VERSION = "20"

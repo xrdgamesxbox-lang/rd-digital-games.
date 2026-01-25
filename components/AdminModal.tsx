@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { X, Sparkles, Loader2, Save, Zap, Gamepad2, Layers, Rocket, Search, Globe, Power, PowerOff, CheckCircle, XCircle } from 'lucide-react';
+import { X, Sparkles, Loader2, Save, Zap, Gamepad2, Layers, Rocket, Search, Globe, Power, PowerOff, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
 import { Game } from '../types.ts';
 import { searchGameData, generateGameDescription } from '../services/geminiService.ts';
 
@@ -14,6 +14,7 @@ const AdminModal: React.FC<AdminModalProps> = ({ onClose, onSave, initialData })
   const [loading, setLoading] = useState(false);
   const [descLoading, setDescLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [quotaError, setQuotaError] = useState(false);
   const [formData, setFormData] = useState<any>({
     title: '',
     description: '',
@@ -26,8 +27,8 @@ const AdminModal: React.FC<AdminModalProps> = ({ onClose, onSave, initialData })
     image_url: '',
     is_featured: false,
     is_available: true, 
-    is_parental_available: true, // Novo default
-    is_exclusive_available: true, // Novo default
+    is_parental_available: true,
+    is_exclusive_available: true,
     platform: 'Xbox One / Series X|S',
     category: 'jogo',
     plan_duration: '1'
@@ -51,11 +52,9 @@ const AdminModal: React.FC<AdminModalProps> = ({ onClose, onSave, initialData })
   }, [initialData]);
 
   const handleSearchProcess = async () => {
-    if (!searchQuery.trim()) {
-      alert('Digite o nome do jogo ou cole um link!');
-      return;
-    }
+    if (!searchQuery.trim()) return;
     setLoading(true);
+    setQuotaError(false);
     try {
       const data = await searchGameData(searchQuery);
       if (data) {
@@ -72,12 +71,13 @@ const AdminModal: React.FC<AdminModalProps> = ({ onClose, onSave, initialData })
           current_price: data.current_price
         }));
         setSearchQuery('');
-      } else {
-        alert("Não conseguimos encontrar dados automáticos. Tente ser mais específico no nome do jogo.");
       }
-    } catch (e) {
-      console.error(e);
-      alert("Erro ao pesquisar. Tente novamente.");
+    } catch (e: any) {
+      if (e.message === "LIMITE_EXCEDIDO") {
+        setQuotaError(true);
+      } else {
+        alert("Erro na busca. Tente novamente.");
+      }
     } finally {
       setLoading(false);
     }
@@ -98,46 +98,7 @@ const AdminModal: React.FC<AdminModalProps> = ({ onClose, onSave, initialData })
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    const payload: any = {
-      title: String(formData.title).trim(),
-      description: String(formData.description).trim(),
-      image_url: String(formData.image_url).trim(),
-      is_featured: Boolean(formData.is_featured),
-      is_available: Boolean(formData.is_available),
-      is_parental_available: Boolean(formData.is_parental_available),
-      is_exclusive_available: Boolean(formData.is_exclusive_available),
-      platform: formData.platform,
-      category: formData.category
-    };
-    
-    if (formData.category === 'jogo') {
-      payload.original_price_parental = Number(formData.original_price_parental) || 0;
-      payload.current_price_parental = Number(formData.current_price_parental) || 0;
-      payload.original_price_exclusive = Number(formData.original_price_exclusive) || 0;
-      payload.current_price_exclusive = Number(formData.current_price_exclusive) || 0;
-      payload.original_price = null;
-      payload.current_price = null;
-      payload.plan_duration = null;
-    } else if (formData.category === 'gamepass') {
-      payload.original_price = Number(formData.original_price) || 0;
-      payload.current_price = Number(formData.current_price) || 0;
-      payload.plan_duration = formData.plan_duration;
-      payload.original_price_parental = null;
-      payload.current_price_parental = null;
-      payload.original_price_exclusive = null;
-      payload.current_price_exclusive = null;
-    } else {
-      payload.original_price = Number(formData.original_price) || 0;
-      payload.current_price = Number(formData.current_price) || 0;
-      payload.original_price_parental = null;
-      payload.current_price_parental = null;
-      payload.original_price_exclusive = null;
-      payload.current_price_exclusive = null;
-      payload.plan_duration = null;
-    }
-
-    onSave(payload);
+    onSave(formData);
     onClose();
   };
 
@@ -166,7 +127,7 @@ const AdminModal: React.FC<AdminModalProps> = ({ onClose, onSave, initialData })
                     value={searchQuery} 
                     onChange={e => setSearchQuery(e.target.value)} 
                     onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleSearchProcess())}
-                    placeholder="Digite o nome do jogo (ex: Elden Ring) ou cole o link..." 
+                    placeholder="Nome do jogo ou link da Xbox Store..." 
                     className="w-full bg-black border border-white/10 rounded-2xl p-4 text-white text-xs outline-none focus:border-[var(--neon-green)]/50 transition-all" 
                   />
                </div>
@@ -179,7 +140,13 @@ const AdminModal: React.FC<AdminModalProps> = ({ onClose, onSave, initialData })
                  {loading ? <Loader2 className="animate-spin w-5 h-5" /> : <Search className="w-5 h-5" />}
                </button>
             </div>
-            <p className="text-[8px] text-gray-600 font-bold uppercase tracking-tighter">A IA buscará automaticamente a capa oficial, descrição e preços médios na web.</p>
+            
+            {quotaError && (
+              <div className="bg-orange-600/10 border border-orange-500/30 p-4 rounded-2xl flex items-center gap-3 animate-bounce-in">
+                 <AlertTriangle className="text-orange-500 w-5 h-5 flex-shrink-0" />
+                 <p className="text-[9px] text-orange-200 font-bold uppercase leading-tight">Limite de buscas por minuto atingido pela IA. Por favor, aguarde 60 segundos para pesquisar novamente ou preencha manualmente.</p>
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-3 gap-4">
@@ -205,7 +172,6 @@ const AdminModal: React.FC<AdminModalProps> = ({ onClose, onSave, initialData })
                 <div className={`grid grid-cols-2 gap-6 p-6 rounded-3xl border transition-colors ${formData.is_parental_available ? 'bg-white/5 border-white/5' : 'bg-red-900/10 border-red-500/30'}`}>
                    <div className="col-span-2 flex justify-between items-center border-b border-white/5 pb-2">
                      <span className={`text-[10px] font-black uppercase tracking-widest ${formData.is_parental_available ? 'text-orange-500' : 'text-gray-500'}`}>CONTA PARENTAL</span>
-                     
                      <label className="flex items-center gap-2 cursor-pointer">
                         <span className={`text-[8px] font-black uppercase ${formData.is_parental_available ? 'text-[var(--neon-green)]' : 'text-red-500'}`}>
                            {formData.is_parental_available ? 'EM ESTOQUE' : 'ESGOTADO'}
@@ -216,21 +182,19 @@ const AdminModal: React.FC<AdminModalProps> = ({ onClose, onSave, initialData })
                         </div>
                      </label>
                    </div>
-                   
                    <div className="space-y-2">
                       <label className="text-[9px] font-black text-gray-500 uppercase">PREÇO ORIGINAL</label>
-                      <input type="number" step="0.01" value={formData.original_price_parental} onChange={e => setFormData({...formData, original_price_parental: e.target.value})} disabled={!formData.is_parental_available} className="w-full bg-black border border-white/10 rounded-xl p-4 text-white disabled:opacity-50" />
+                      <input type="number" step="0.01" value={formData.original_price_parental} onChange={e => setFormData({...formData, original_price_parental: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl p-4 text-white disabled:opacity-50" />
                    </div>
                    <div className="space-y-2">
                       <label className="text-[9px] font-black text-gray-500 uppercase">PREÇO VENDA</label>
-                      <input type="number" step="0.01" value={formData.current_price_parental} onChange={e => setFormData({...formData, current_price_parental: e.target.value})} disabled={!formData.is_parental_available} className="w-full bg-black border border-white/10 rounded-xl p-4 text-[var(--neon-green)] font-bold disabled:opacity-50" />
+                      <input type="number" step="0.01" value={formData.current_price_parental} onChange={e => setFormData({...formData, current_price_parental: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl p-4 text-[var(--neon-green)] font-bold disabled:opacity-50" />
                    </div>
                 </div>
 
                 <div className={`grid grid-cols-2 gap-6 p-6 rounded-3xl border transition-colors ${formData.is_exclusive_available ? 'bg-white/5 border-white/5' : 'bg-red-900/10 border-red-500/30'}`}>
                    <div className="col-span-2 flex justify-between items-center border-b border-white/5 pb-2">
                      <span className={`text-[10px] font-black uppercase tracking-widest ${formData.is_exclusive_available ? 'text-blue-500' : 'text-gray-500'}`}>CONTA EXCLUSIVA</span>
-                     
                      <label className="flex items-center gap-2 cursor-pointer">
                         <span className={`text-[8px] font-black uppercase ${formData.is_exclusive_available ? 'text-[var(--neon-green)]' : 'text-red-500'}`}>
                            {formData.is_exclusive_available ? 'EM ESTOQUE' : 'ESGOTADO'}
@@ -243,11 +207,11 @@ const AdminModal: React.FC<AdminModalProps> = ({ onClose, onSave, initialData })
                    </div>
                    <div className="space-y-2">
                       <label className="text-[9px] font-black text-gray-500 uppercase">PREÇO ORIGINAL</label>
-                      <input type="number" step="0.01" value={formData.original_price_exclusive} onChange={e => setFormData({...formData, original_price_exclusive: e.target.value})} disabled={!formData.is_exclusive_available} className="w-full bg-black border border-white/10 rounded-xl p-4 text-white disabled:opacity-50" />
+                      <input type="number" step="0.01" value={formData.original_price_exclusive} onChange={e => setFormData({...formData, original_price_exclusive: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl p-4 text-white disabled:opacity-50" />
                    </div>
                    <div className="space-y-2">
                       <label className="text-[9px] font-black text-gray-500 uppercase">PREÇO VENDA</label>
-                      <input type="number" step="0.01" value={formData.current_price_exclusive} onChange={e => setFormData({...formData, current_price_exclusive: e.target.value})} disabled={!formData.is_exclusive_available} className="w-full bg-black border border-white/10 rounded-xl p-4 text-[var(--neon-green)] font-bold disabled:opacity-50" />
+                      <input type="number" step="0.01" value={formData.current_price_exclusive} onChange={e => setFormData({...formData, current_price_exclusive: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl p-4 text-[var(--neon-green)] font-bold disabled:opacity-50" />
                    </div>
                 </div>
               </>
@@ -256,17 +220,6 @@ const AdminModal: React.FC<AdminModalProps> = ({ onClose, onSave, initialData })
                  <div className="col-span-2 text-[10px] font-black text-[var(--neon-green)] uppercase tracking-widest border-b border-white/5 pb-2">
                    {formData.category === 'gamepass' ? 'CONFIGURAÇÃO GAME PASS' : 'CONFIGURAÇÃO PRÉ-VENDA'}
                  </div>
-                 {formData.category === 'gamepass' && (
-                    <div className="col-span-2 space-y-2 mb-4">
-                      <label className="text-[9px] font-black text-gray-500 uppercase">DURAÇÃO DO PLANO</label>
-                      <select value={formData.plan_duration} onChange={e => setFormData({...formData, plan_duration: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl p-4 text-white">
-                        <option value="1">1 Mês</option>
-                        <option value="3">3 Meses</option>
-                        <option value="6">6 Meses</option>
-                        <option value="12">12 Meses</option>
-                      </select>
-                    </div>
-                 )}
                  <div className="space-y-2">
                     <label className="text-[9px] font-black text-gray-500 uppercase">PREÇO ORIGINAL</label>
                     <input type="number" step="0.01" value={formData.original_price} onChange={e => setFormData({...formData, original_price: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl p-4 text-white" />
@@ -280,10 +233,7 @@ const AdminModal: React.FC<AdminModalProps> = ({ onClose, onSave, initialData })
 
             <div className="space-y-2">
               <label className="text-[10px] font-black text-gray-500 uppercase">URL DA IMAGEM</label>
-              <div className="relative">
-                <input required type="text" value={formData.image_url} onChange={e => setFormData({...formData, image_url: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl p-4 text-white text-xs pr-12" />
-                {formData.image_url && <img src={formData.image_url} className="absolute right-2 top-2 w-8 h-8 rounded object-cover border border-white/20" alt="Preview" />}
-              </div>
+              <input required type="text" value={formData.image_url} onChange={e => setFormData({...formData, image_url: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl p-4 text-white text-xs" />
             </div>
 
             <div className="space-y-2">
@@ -307,15 +257,10 @@ const AdminModal: React.FC<AdminModalProps> = ({ onClose, onSave, initialData })
                  <input type="checkbox" checked={formData.is_featured} onChange={e => setFormData({...formData, is_featured: e.target.checked})} className="w-5 h-5 accent-[var(--neon-green)]" />
                  <label className="text-[10px] font-black text-gray-500 uppercase">DESTACAR</label>
                </div>
-               
                <div className="h-6 w-px bg-white/10"></div>
-
                <div className="flex items-center gap-3">
                  <input type="checkbox" checked={formData.is_available} onChange={e => setFormData({...formData, is_available: e.target.checked})} className="w-5 h-5 accent-blue-500" />
-                 <div className="flex flex-col">
-                   <label className="text-[10px] font-black text-white uppercase">PRODUTO DISPONÍVEL</label>
-                   <span className="text-[8px] text-gray-500 font-bold">Se desmarcado, aparecerá "Indisponível"</span>
-                 </div>
+                 <label className="text-[10px] font-black text-white uppercase">PRODUTO EM ESTOQUE</label>
                </div>
             </div>
           </div>

@@ -8,17 +8,20 @@ export interface ExtractedGameData {
   current_price: number;
   discount_percentage: number;
   image_url: string;
+  error?: string;
 }
 
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
 /**
- * Busca informações de um jogo usando Gemini 3 Flash.
- * A chave é obtida exclusivamente via process.env.API_KEY injetada pelo Vite.
+ * Busca informações de um jogo usando Gemini.
+ * Inclui tratamento para erro 429 (Limite de requisições).
  */
-export const searchGameData = async (query: string): Promise<ExtractedGameData | null> => {
+export const searchGameData = async (query: string, retries = 2): Promise<ExtractedGameData | null> => {
   const apiKey = process.env.API_KEY;
   
   if (!apiKey || apiKey === "") {
-    console.error("Gemini API: Chave não configurada no ambiente.");
+    console.error("Gemini API: Chave não configurada.");
     return null;
   }
 
@@ -51,7 +54,18 @@ export const searchGameData = async (query: string): Promise<ExtractedGameData |
     });
     
     return JSON.parse(response.text || '{}') as ExtractedGameData;
-  } catch (error) {
+  } catch (error: any) {
+    // Se o erro for de limite de cota (429) e ainda houver tentativas
+    if (error.message?.includes('429') && retries > 0) {
+      console.warn(`Limite de cota atingido. Tentando novamente em 2 segundos... (${retries} restantes)`);
+      await sleep(2000);
+      return searchGameData(query, retries - 1);
+    }
+
+    if (error.message?.includes('429')) {
+      throw new Error("LIMITE_EXCEDIDO");
+    }
+
     console.error("Erro na pesquisa Gemini:", error);
     return null;
   }
@@ -72,7 +86,8 @@ export const generateGameDescription = async (title: string): Promise<string> =>
       },
     });
     return response.text || "Descrição indisponível.";
-  } catch (error) {
+  } catch (error: any) {
+    if (error.message?.includes('429')) return "Limite de criação de descrições atingido por este minuto. Tente novamente em breve.";
     return "Falha ao gerar descrição.";
   }
 };
