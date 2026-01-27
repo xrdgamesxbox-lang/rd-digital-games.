@@ -55,7 +55,6 @@ export const searchGameData = async (query: string, retries = 2): Promise<Extrac
     
     return JSON.parse(response.text || '{}') as ExtractedGameData;
   } catch (error: any) {
-    // Se o erro for de limite de cota (429) e ainda houver tentativas
     if (error.message?.includes('429') && retries > 0) {
       console.warn(`Limite de cota atingido. Tentando novamente em 2 segundos... (${retries} restantes)`);
       await sleep(2000);
@@ -71,23 +70,47 @@ export const searchGameData = async (query: string, retries = 2): Promise<Extrac
   }
 };
 
+/**
+ * Gera uma descrição rica e organizada para o jogo.
+ */
 export const generateGameDescription = async (title: string): Promise<string> => {
   const apiKey = process.env.API_KEY;
   if (!apiKey) return "Descrição automática indisponível.";
 
   try {
     const ai = new GoogleGenAI({ apiKey });
+    
+    // Novo prompt estruturado para melhor organização e inclusão de consoles
+    const prompt = `
+      Aja como um redator profissional de e-commerce especializado em Xbox. 
+      Escreva uma descrição empolgante, persuasiva e bem organizada para o jogo "${title}".
+      
+      Siga exatamente este formato:
+      1. Comece com um parágrafo curto de introdução com emojis.
+      2. Liste 3 a 4 principais destaques do jogo em bullet points (•).
+      3. No final, adicione OBRIGATORIAMENTE uma seção chamada "Funciona em:" listando:
+         - Xbox One
+         - Xbox Series X|S
+      
+      Mantenha o tom de voz épico e profissional da RD Digital Games.
+    `;
+
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
-      contents: `Escreva uma descrição empolgante para a loja RD Digital Games sobre o jogo "${title}".`,
+      contents: prompt,
       config: {
-        maxOutputTokens: 250,
+        maxOutputTokens: 600,
+        temperature: 0.7,
         thinkingConfig: { thinkingBudget: 0 }
       },
     });
-    return response.text || "Descrição indisponível.";
+    
+    return response.text || "Descrição indisponível no momento.";
   } catch (error: any) {
-    if (error.message?.includes('429')) return "Limite de criação de descrições atingido por este minuto. Tente novamente em breve.";
-    return "Falha ao gerar descrição.";
+    if (error.message?.includes('429')) {
+      return "⚠️ Limite de cota atingido. Por favor, aguarde 1 minuto para gerar novas descrições via IA.";
+    }
+    console.error("Erro ao gerar descrição:", error);
+    return "Falha ao gerar descrição. Tente preencher manualmente.";
   }
 };
