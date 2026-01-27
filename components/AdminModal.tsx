@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { X, Sparkles, Loader2, Save, Zap, Gamepad2, Layers, Rocket, Search, Globe, Power, PowerOff, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
+import { X, Sparkles, Loader2, Save, Zap, Gamepad2, Layers, Rocket, Search, Globe, Power, PowerOff, CheckCircle, XCircle, AlertTriangle, Key } from 'lucide-react';
 import { Game } from '../types.ts';
 import { searchGameData, generateGameDescription } from '../services/geminiService.ts';
 
@@ -132,10 +132,11 @@ const AdminModal: React.FC<AdminModalProps> = ({ onClose, onSave, initialData })
             )}
           </div>
 
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <button type="button" onClick={() => setFormData({...formData, category: 'jogo'})} className={`py-4 rounded-2xl border flex flex-col items-center gap-2 ${formData.category === 'jogo' ? 'bg-[var(--neon-green)] text-black border-[var(--neon-green)]' : 'bg-white/5 border-white/5 text-gray-500'}`}><Gamepad2 className="w-5 h-5" /> <span className="text-[9px] font-black uppercase">JOGO</span></button>
             <button type="button" onClick={() => setFormData({...formData, category: 'gamepass'})} className={`py-4 rounded-2xl border flex flex-col items-center gap-2 ${formData.category === 'gamepass' ? 'bg-green-600 text-white border-green-600' : 'bg-white/5 border-white/5 text-gray-500'}`}><Layers className="w-5 h-5" /> <span className="text-[9px] font-black uppercase">GAME PASS</span></button>
             <button type="button" onClick={() => setFormData({...formData, category: 'prevenda'})} className={`py-4 rounded-2xl border flex flex-col items-center gap-2 ${formData.category === 'prevenda' ? 'bg-orange-600 text-white border-orange-600' : 'bg-white/5 border-white/5 text-gray-500'}`}><Rocket className="w-5 h-5" /> <span className="text-[9px] font-black uppercase">PRÉ-VENDA</span></button>
+            <button type="button" onClick={() => setFormData({...formData, category: 'codigo25'})} className={`py-4 rounded-2xl border flex flex-col items-center gap-2 ${formData.category === 'codigo25' ? 'bg-purple-600 text-white border-purple-600' : 'bg-white/5 border-white/5 text-gray-500'}`}><Key className="w-5 h-5" /> <span className="text-[9px] font-black uppercase">25 DÍGITOS</span></button>
           </div>
 
           <div className="space-y-4">
@@ -191,7 +192,6 @@ const AdminModal: React.FC<AdminModalProps> = ({ onClose, onSave, initialData })
                    {descLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />} GERAR COM IA
                  </button>
               </div>
-              {/* Ajuste: 'whitespace-pre-wrap' para visualizar a formatação no painel adm */}
               <textarea rows={6} value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} className="w-full bg-black border border-white/10 rounded-xl p-4 text-white text-xs whitespace-pre-wrap" />
             </div>
             

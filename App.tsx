@@ -47,7 +47,7 @@ const App: React.FC = () => {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [toast, setToast] = useState<{message: string, type: 'success' | 'error'} | null>(null);
-  const [activeCategory, setActiveCategory] = useState<'jogo' | 'gamepass' | 'prevenda'>('jogo');
+  const [activeCategory, setActiveCategory] = useState<'jogo' | 'gamepass' | 'prevenda' | 'codigo25'>('jogo');
   const [catalogSearchTerm, setCatalogSearchTerm] = useState('');
   const [xboxLinkCheck, setXboxLinkCheck] = useState('');
   const [isCheckingPrice, setIsCheckingPrice] = useState(false);
@@ -84,6 +84,7 @@ const App: React.FC = () => {
     tab_games: 'JOGOS',
     tab_gamepass: 'GAME PASS',
     tab_preorder: 'PRÉ-VENDA',
+    tab_codes: '25 DÍGITOS',
     cart_title: 'Seu Carrinho',
     cart_empty_text: 'Carrinho Vazio',
     checkout_button_text: 'PAGAR AGORA',
@@ -226,7 +227,7 @@ const App: React.FC = () => {
     setTimeout(() => setToast(null), 6000);
   };
 
-  const addToCart = async (game: Game, type: 'parental' | 'exclusiva' | 'gamepass' | 'prevenda', price: number) => {
+  const addToCart = async (game: Game, type: 'parental' | 'exclusiva' | 'gamepass' | 'prevenda' | 'codigo25', price: number) => {
     if (!user) { setShowAuthModal(true); showToast("ATENÇÃO: Para comprar você precisa criar uma conta!", "error"); return; }
     const newItem: CartItem = { cartId: Math.random().toString(36).substr(2, 9), gameId: game.id, title: game.title, image_url: game.image_url, accountType: type, price: price };
     const newCart = [...cart, newItem];
@@ -453,9 +454,11 @@ const App: React.FC = () => {
                  <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
                  <input type="text" value={catalogSearchTerm} onChange={e => setCatalogSearchTerm(e.target.value)} placeholder={siteSettings.search_placeholder} className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-14 pr-6 text-white text-xs outline-none" />
               </div>
-              <div className="flex gap-4">
-                 <button onClick={() => setActiveCategory('jogo')} className={`px-8 py-4 rounded-2xl text-[10px] font-black uppercase transition-all ${activeCategory === 'jogo' ? 'bg-[var(--neon-green)] text-black' : 'bg-white/5 text-gray-500'}`}>{siteSettings.tab_games}</button>
-                 <button onClick={() => setActiveCategory('gamepass')} className={`px-8 py-4 rounded-2xl text-[10px] font-black uppercase transition-all ${activeCategory === 'gamepass' ? 'bg-green-600 text-white' : 'bg-white/5 text-gray-500'}`}>{siteSettings.tab_gamepass}</button>
+              <div className="flex flex-wrap gap-4">
+                 <button onClick={() => setActiveCategory('jogo')} className={`px-6 py-4 rounded-2xl text-[10px] font-black uppercase transition-all ${activeCategory === 'jogo' ? 'bg-[var(--neon-green)] text-black' : 'bg-white/5 text-gray-500'}`}>{siteSettings.tab_games}</button>
+                 <button onClick={() => setActiveCategory('gamepass')} className={`px-6 py-4 rounded-2xl text-[10px] font-black uppercase transition-all ${activeCategory === 'gamepass' ? 'bg-green-600 text-white' : 'bg-white/5 text-gray-500'}`}>{siteSettings.tab_gamepass}</button>
+                 <button onClick={() => setActiveCategory('prevenda')} className={`px-6 py-4 rounded-2xl text-[10px] font-black uppercase transition-all ${activeCategory === 'prevenda' ? 'bg-orange-600 text-white' : 'bg-white/5 text-gray-500'}`}>{siteSettings.tab_preorder}</button>
+                 <button onClick={() => setActiveCategory('codigo25')} className={`px-6 py-4 rounded-2xl text-[10px] font-black uppercase transition-all ${activeCategory === 'codigo25' ? 'bg-purple-600 text-white' : 'bg-white/5 text-gray-500'}`}>{siteSettings.tab_codes}</button>
               </div>
            </div>
            <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-12 pb-24">

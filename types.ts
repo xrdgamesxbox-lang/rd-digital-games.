@@ -6,29 +6,26 @@ export interface Game {
   platform: string;
   image_url: string;
   is_featured: boolean;
-  is_available?: boolean; // Disponibilidade Global do Jogo
+  is_available?: boolean;
   
-  // Disponibilidade específica (Novo)
   is_parental_available?: boolean;
   is_exclusive_available?: boolean;
 
-  category: 'jogo' | 'gamepass' | 'prevenda';
+  category: 'jogo' | 'gamepass' | 'prevenda' | 'codigo25';
   display_order?: number;
-  updated_at?: string; // Data da última modificação
+  updated_at?: string;
   
-  // Preços para Jogos
   original_price_parental?: number;
   current_price_parental?: number;
   original_price_exclusive?: number;
   current_price_exclusive?: number;
   
-  // Preços para Game Pass (ou legado)
   original_price?: number;
   current_price?: number;
   discount_percentage?: number;
   
   plan_duration?: '1' | '3' | '6' | '12';
-  account_type?: 'parental' | 'exclusiva'; // Usado para histórico/legado
+  account_type?: 'parental' | 'exclusiva';
 }
 
 export interface CartItem {
@@ -36,7 +33,7 @@ export interface CartItem {
   gameId: string;
   title: string;
   image_url: string;
-  accountType: 'parental' | 'exclusiva' | 'gamepass' | 'prevenda';
+  accountType: 'parental' | 'exclusiva' | 'gamepass' | 'prevenda' | 'codigo25';
   price: number;
 }
 

@@ -1,12 +1,12 @@
 
 import React, { useState, useEffect } from 'react';
-import { X, ShoppingCart, ArrowLeft, ShieldCheck, Zap, Rocket, Calendar, Check, Users, UserPlus, AlertTriangle } from 'lucide-react';
+import { X, ShoppingCart, ArrowLeft, ShieldCheck, Zap, Rocket, Calendar, Check, Users, UserPlus, AlertTriangle, Key } from 'lucide-react';
 import { Game } from '../types.ts';
 
 interface ProductPageProps {
   game: Game;
   onClose: () => void;
-  onAddToCart: (game: Game, type: 'parental' | 'exclusiva' | 'gamepass' | 'prevenda', price: number) => void;
+  onAddToCart: (game: Game, type: 'parental' | 'exclusiva' | 'gamepass' | 'prevenda' | 'codigo25', price: number) => void;
 }
 
 const ProductPage: React.FC<ProductPageProps> = ({ game, onClose, onAddToCart }) => {
@@ -28,17 +28,18 @@ const ProductPage: React.FC<ProductPageProps> = ({ game, onClose, onAddToCart })
 
   const isGamePass = game.category === 'gamepass';
   const isPreOrder = game.category === 'prevenda';
+  const isCode = game.category === 'codigo25';
   const isUnavailable = game.is_available === false;
 
-  const isSelectionAvailable = isGamePass || isPreOrder 
+  const isSelectionAvailable = (isGamePass || isPreOrder || isCode)
     ? !isUnavailable 
     : (accountType === 'parental' ? parentalStock : exclusiveStock);
 
-  const originalPrice = (isGamePass || isPreOrder)
+  const originalPrice = (isGamePass || isPreOrder || isCode)
     ? (game.original_price || 0) 
     : (accountType === 'parental' ? (game.original_price_parental || 0) : (game.original_price_exclusive || 0));
 
-  const currentPrice = (isGamePass || isPreOrder)
+  const currentPrice = (isGamePass || isPreOrder || isCode)
     ? (game.current_price || 0) 
     : (accountType === 'parental' ? (game.current_price_parental || 0) : (game.current_price_exclusive || 0));
 
@@ -46,7 +47,7 @@ const ProductPage: React.FC<ProductPageProps> = ({ game, onClose, onAddToCart })
 
   const handleBuy = () => {
     if (!isUnavailable && isSelectionAvailable) {
-      onAddToCart(game, game.category === 'jogo' ? accountType : game.category, currentPrice);
+      onAddToCart(game, (game.category === 'jogo' ? accountType : game.category) as any, currentPrice);
     }
   };
 
@@ -56,7 +57,9 @@ const ProductPage: React.FC<ProductPageProps> = ({ game, onClose, onAddToCart })
         <button onClick={onClose} className="flex items-center gap-2 text-white hover:text-[var(--neon-green)] transition-colors">
           <ArrowLeft className="w-5 h-5" /> <span className="text-xs font-black uppercase tracking-widest">VOLTAR</span>
         </button>
-        <span className="text-[10px] font-black uppercase tracking-widest text-gray-500 hidden md:block">{game.category === 'jogo' ? 'JOGO DIGITAL' : game.category.toUpperCase()}</span>
+        <span className="text-[10px] font-black uppercase tracking-widest text-gray-500 hidden md:block">
+           {game.category === 'jogo' ? 'JOGO DIGITAL' : game.category === 'codigo25' ? 'CÓDIGO 25 DÍGITOS' : game.category.toUpperCase()}
+        </span>
       </div>
 
       <div className="max-w-7xl mx-auto p-6 md:p-12 pb-32">
@@ -69,6 +72,7 @@ const ProductPage: React.FC<ProductPageProps> = ({ game, onClose, onAddToCart })
                 <div className="absolute top-6 right-6 flex flex-col gap-3 items-end">
                    {isPreOrder && <span className="bg-orange-600 text-white px-4 py-2 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl animate-pulse">PRÉ-VENDA</span>}
                    {isGamePass && <span className="bg-[var(--neon-green)] text-black px-4 py-2 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl">GAME PASS</span>}
+                   {isCode && <span className="bg-purple-600 text-white px-4 py-2 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl">CÓDIGO 25D</span>}
                    {discount > 0 && <span className="bg-red-600 text-white px-4 py-2 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl">-{discount}% OFF</span>}
                 </div>
               </div>
@@ -89,12 +93,23 @@ const ProductPage: React.FC<ProductPageProps> = ({ game, onClose, onAddToCart })
                  <h3 className="text-[10px] font-black text-[var(--neon-green)] uppercase tracking-widest flex items-center gap-2">
                     <Zap className="w-4 h-4" /> Sobre o Produto
                  </h3>
-                 {/* AQUI ESTÁ O AJUSTE PRINCIPAL: whitespace-pre-wrap */}
                  <p className="text-gray-400 text-sm md:text-base leading-relaxed font-medium whitespace-pre-wrap">
                     {game.description || "Descrição indisponível."}
                  </p>
               </div>
             </div>
+
+            {isCode && (
+               <div className="bg-purple-600/10 border border-purple-500/20 p-8 rounded-[2rem] flex items-center gap-6">
+                  <div className="bg-purple-600 p-4 rounded-2xl text-white">
+                     <Key className="w-8 h-8" />
+                  </div>
+                  <div>
+                     <h4 className="text-xl font-black text-white uppercase italic">ATIVAÇÃO DIRETA</h4>
+                     <p className="text-xs text-gray-400 uppercase font-bold tracking-widest">A chave será sua e você ativa na sua conta pessoal Microsoft.</p>
+                  </div>
+               </div>
+            )}
 
             {game.category === 'jogo' && (
               <div className="space-y-4">
@@ -152,7 +167,7 @@ const ProductPage: React.FC<ProductPageProps> = ({ game, onClose, onAddToCart })
                   </p>
                   <div className="flex items-end gap-3 justify-center md:justify-start">
                      {originalPrice > 0 && <span className="text-sm text-gray-600 line-through font-bold mb-1">R$ {originalPrice.toFixed(2)}</span>}
-                     <span className="text-4xl md:text-5xl font-black italic text-white tracking-tighter neon-text-glow">
+                     <span className={`text-4xl md:text-5xl font-black italic tracking-tighter neon-text-glow ${isCode ? 'text-purple-500' : 'text-white'}`}>
                         R$ {currentPrice.toFixed(2)}
                      </span>
                   </div>
@@ -164,10 +179,12 @@ const ProductPage: React.FC<ProductPageProps> = ({ game, onClose, onAddToCart })
                   className={`w-full md:w-auto px-12 py-6 rounded-[2rem] font-black uppercase text-xs tracking-[0.2em] flex items-center justify-center gap-4 transition-all shadow-xl hover:scale-105 active:scale-95 ${
                      isUnavailable || !isSelectionAvailable 
                      ? 'bg-gray-800 text-gray-500 cursor-not-allowed' 
-                     : 'bg-[var(--neon-green)] text-black'
+                     : isCode 
+                       ? 'bg-purple-600 text-white'
+                       : 'bg-[var(--neon-green)] text-black'
                   }`}
                >
-                  {isUnavailable ? <> <AlertTriangle className="w-5 h-5" /> INDISPONÍVEL </> : !isSelectionAvailable ? <> <AlertTriangle className="w-5 h-5" /> ESGOTADO </> : <> <ShoppingCart className="w-5 h-5" /> {isPreOrder ? 'RESERVAR AGORA' : 'ADICIONAR AO CARRINHO'} </>}
+                  {isUnavailable ? <> <AlertTriangle className="w-5 h-5" /> INDISPONÍVEL </> : !isSelectionAvailable ? <> <AlertTriangle className="w-5 h-5" /> ESGOTADO </> : <> <ShoppingCart className="w-5 h-5" /> {isPreOrder ? 'RESERVAR AGORA' : isCode ? 'COMPRAR CÓDIGO' : 'ADICIONAR AO CARRINHO'} </>}
                </button>
             </div>
 

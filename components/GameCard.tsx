@@ -1,22 +1,20 @@
+
 import React, { useState, useEffect } from 'react';
-import { ShoppingCart, AlertCircle, Zap, ShieldCheck, UserCheck, Calendar, Users, UserPlus, Rocket, Ban, Eye } from 'lucide-react';
+import { ShoppingCart, AlertCircle, Zap, ShieldCheck, UserCheck, Calendar, Users, UserPlus, Rocket, Ban, Eye, Key } from 'lucide-react';
 import { Game } from '../types.ts';
 
 interface GameCardProps {
   game: Game;
-  // Alterado: agora passamos onOpenPage em vez de onBuy direto para o card (embora o app ainda gerencie isso)
   onOpenPage?: (game: Game) => void;
-  onBuy?: (game: Game, type: 'parental' | 'exclusiva' | 'gamepass' | 'prevenda', price: number) => void; 
+  onBuy?: (game: Game, type: 'parental' | 'exclusiva' | 'gamepass' | 'prevenda' | 'codigo25', price: number) => void; 
 }
 
 const GameCard: React.FC<GameCardProps> = ({ game, onOpenPage, onBuy }) => {
   const [imageError, setImageError] = useState(false);
   
-  // Lógica de estoque apenas para mostrar preço "A partir de"
   const parentalStock = game.is_parental_available !== false;
   const exclusiveStock = game.is_exclusive_available !== false;
   
-  // Default visual
   const [accountType, setAccountType] = useState<'parental' | 'exclusiva'>(
     parentalStock ? 'parental' : 'exclusiva'
   );
@@ -25,23 +23,23 @@ const GameCard: React.FC<GameCardProps> = ({ game, onOpenPage, onBuy }) => {
 
   const isGamePass = game.category === 'gamepass';
   const isPreOrder = game.category === 'prevenda';
+  const isCode = game.category === 'codigo25';
   const isUnavailable = game.is_available === false;
   
-  const isSelectionAvailable = isGamePass || isPreOrder 
+  const isSelectionAvailable = (isGamePass || isPreOrder || isCode)
     ? !isUnavailable 
     : (accountType === 'parental' ? parentalStock : exclusiveStock);
 
-  const originalPrice = (isGamePass || isPreOrder)
+  const originalPrice = (isGamePass || isPreOrder || isCode)
     ? (game.original_price || 0) 
     : (accountType === 'parental' ? (game.original_price_parental || 0) : (game.original_price_exclusive || 0));
 
-  const currentPrice = (isGamePass || isPreOrder)
+  const currentPrice = (isGamePass || isPreOrder || isCode)
     ? (game.current_price || 0) 
     : (accountType === 'parental' ? (game.current_price_parental || 0) : (game.current_price_exclusive || 0));
 
   const discount = originalPrice > 0 ? Math.round(((originalPrice - currentPrice) / originalPrice) * 100) : 0;
 
-  // Função principal ao clicar no CARD ou no BOTÃO
   const handleOpen = () => {
     if (onOpenPage) {
       onOpenPage(game);
@@ -54,7 +52,6 @@ const GameCard: React.FC<GameCardProps> = ({ game, onOpenPage, onBuy }) => {
       className={`relative flex flex-col bg-[#070709] rounded-[2rem] md:rounded-[3rem] overflow-hidden border ${game.is_featured ? 'border-[var(--neon-green)]/40 ring-1 ring-[var(--neon-green)]/10' : 'border-white/5'} transition-all hover:-translate-y-3 group shadow-[0_20px_50px_rgba(0,0,0,0.5)] hover:shadow-[0_20px_60px_var(--neon-glow)] cursor-pointer`}
     >
       
-      {/* Overlay de Indisponível (Global) */}
       {isUnavailable && (
          <div className="absolute inset-0 z-50 bg-black/60 backdrop-blur-[2px] flex items-center justify-center pointer-events-none">
             <div className="bg-red-600 text-white px-4 py-2 md:px-6 md:py-3 rounded-2xl font-black uppercase text-[10px] md:text-xs tracking-widest shadow-2xl transform -rotate-12 border border-red-400">
@@ -84,6 +81,10 @@ const GameCard: React.FC<GameCardProps> = ({ game, onOpenPage, onBuy }) => {
                 <div className="bg-orange-600 text-white px-2 py-2 md:px-3 md:py-3 rounded-2xl border border-orange-400/20 shadow-xl animate-pulse">
                   <Rocket className="w-3 h-3 md:w-4 md:h-4 fill-white" />
                 </div>
+             ) : isCode ? (
+                <div className="bg-purple-600 text-white px-2 py-2 md:px-3 md:py-3 rounded-2xl border border-purple-400/20 shadow-xl">
+                  <Key className="w-3 h-3 md:w-4 md:h-4 fill-white" />
+                </div>
              ) : (
                 <div className="bg-black/80 backdrop-blur-md px-2 py-2 md:px-3 md:py-3 rounded-2xl border border-white/10 text-[var(--neon-green)] shadow-xl">
                   <Zap className="w-3 h-3 md:w-4 md:h-4 fill-[var(--neon-green)]" />
@@ -95,9 +96,9 @@ const GameCard: React.FC<GameCardProps> = ({ game, onOpenPage, onBuy }) => {
                   {game.plan_duration} MESES
                 </div>
              )}
-             {isPreOrder && (
-                <div className="bg-orange-600 text-white px-2 py-1 md:px-3 md:py-1.5 rounded-xl text-[8px] md:text-[9px] font-black uppercase tracking-tighter shadow-xl">
-                  RESERVE JÁ
+             {isCode && (
+                <div className="bg-purple-600 text-white px-2 py-1 md:px-3 md:py-1.5 rounded-xl text-[8px] md:text-[9px] font-black uppercase tracking-tighter shadow-xl">
+                  CÓDIGO 25D
                 </div>
              )}
           </div>
@@ -115,7 +116,6 @@ const GameCard: React.FC<GameCardProps> = ({ game, onOpenPage, onBuy }) => {
           {game.title}
         </h3>
 
-        {/* Visual apenas, clique controlado pelo card pai */}
         {game.category === 'jogo' && (
           <div className={`flex gap-1 md:gap-2 mb-3 md:mb-4 bg-white/5 p-1 rounded-xl md:rounded-2xl border border-white/5 ${isUnavailable ? 'opacity-50 pointer-events-none' : ''}`}>
              <div 
@@ -139,6 +139,12 @@ const GameCard: React.FC<GameCardProps> = ({ game, onOpenPage, onBuy }) => {
           </div>
         )}
 
+        {isCode && (
+           <div className="bg-purple-600/10 border border-purple-500/20 px-4 py-2 rounded-xl mb-4">
+              <span className="text-[8px] md:text-[10px] font-black text-purple-400 uppercase tracking-widest">Ativação Própria (Sua Conta)</span>
+           </div>
+        )}
+
         <div className="mt-auto space-y-3 md:space-y-4">
           {!isUnavailable ? (
              <>
@@ -155,11 +161,11 @@ const GameCard: React.FC<GameCardProps> = ({ game, onOpenPage, onBuy }) => {
 
                 <div className="flex justify-between items-end">
                   <div>
-                    <div className={`text-2xl md:text-4xl font-black italic tracking-tighter leading-none neon-text-glow ${!isSelectionAvailable ? 'text-gray-700' : (isPreOrder ? 'text-orange-500' : 'text-white')}`}>
+                    <div className={`text-2xl md:text-4xl font-black italic tracking-tighter leading-none neon-text-glow ${!isSelectionAvailable ? 'text-gray-700' : (isPreOrder ? 'text-orange-500' : isCode ? 'text-purple-500' : 'text-white')}`}>
                       {isSelectionAvailable ? `R$${currentPrice.toFixed(2).replace('.', ',')}` : '---'}
                     </div>
-                    <div className={`text-[8px] md:text-[9px] font-black uppercase tracking-widest md:tracking-[0.4em] mt-2 md:mt-3 opacity-80 ${isPreOrder ? 'text-orange-400' : 'text-[var(--neon-green)]'}`}>
-                      {isPreOrder ? 'PRÉ-VENDA ATIVA' : 'VER DETALHES'}
+                    <div className={`text-[8px] md:text-[9px] font-black uppercase tracking-widest md:tracking-[0.4em] mt-2 md:mt-3 opacity-80 ${isPreOrder ? 'text-orange-400' : isCode ? 'text-purple-400' : 'text-[var(--neon-green)]'}`}>
+                      {isPreOrder ? 'PRÉ-VENDA ATIVA' : isCode ? 'CÓDIGO DIGITAL' : 'VER DETALHES'}
                     </div>
                   </div>
                 </div>
@@ -177,7 +183,9 @@ const GameCard: React.FC<GameCardProps> = ({ game, onOpenPage, onBuy }) => {
                   ? 'bg-red-900/20 text-red-700 border border-red-900/30' 
                   : (isPreOrder 
                       ? 'bg-orange-600 text-white shadow-[0_15px_30px_rgba(234,88,12,0.15)] group-active:scale-95' 
-                      : 'bg-white/10 text-white group-hover:bg-[var(--neon-green)] group-hover:text-black group-active:scale-95'
+                      : isCode 
+                        ? 'bg-purple-600 text-white shadow-[0_15px_30px_rgba(147,51,234,0.15)] group-active:scale-95'
+                        : 'bg-white/10 text-white group-hover:bg-[var(--neon-green)] group-hover:text-black group-active:scale-95'
                     )
               }`}
           >
