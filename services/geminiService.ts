@@ -25,17 +25,19 @@ export const searchGameData = async (query: string, retries = 2): Promise<Extrac
   }
 
   try {
+    // Fix: Using the correct initialization pattern
     const ai = new GoogleGenAI({ apiKey });
     
     const prompt = query.startsWith('http') 
       ? `Aja como um especialista em Xbox. Analise o link: "${query}". Extraia: título oficial, preço original, preço atual (promoção) e uma URL de imagem da capa (vertical).`
       : `Pesquise sobre o jogo: "${query}". Retorne: título oficial, descrição rica, preços médios e uma URL de imagem de capa vertical (poster).`;
 
+    // Fix: Removed googleSearch tool as the guideline mentions its output may not be JSON, 
+    // and this function requires structured JSON output via responseSchema.
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
       contents: prompt,
       config: {
-        tools: [{ googleSearch: {} }],
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.OBJECT,
@@ -52,6 +54,7 @@ export const searchGameData = async (query: string, retries = 2): Promise<Extrac
       }
     });
     
+    // Fix: Accessing .text directly (not .text()) as per guidelines
     return JSON.parse(response.text || '{}') as ExtractedGameData;
   } catch (error: any) {
     if (error.message?.includes('429') && retries > 0) {
@@ -72,6 +75,7 @@ export const generateGameDescription = async (title: string): Promise<string> =>
   if (!apiKey) return "Descrição automática indisponível.";
 
   try {
+    // Fix: Using the correct initialization pattern
     const ai = new GoogleGenAI({ apiKey });
     
     const prompt = `
@@ -103,6 +107,7 @@ export const generateGameDescription = async (title: string): Promise<string> =>
       },
     });
     
+    // Fix: Accessing .text directly (not .text()) as per guidelines
     return response.text || "Descrição indisponível.";
   } catch (error: any) {
     if (error.message?.includes('429')) return "⚠️ Limite de cota atingido. Aguarde 1 minuto.";
