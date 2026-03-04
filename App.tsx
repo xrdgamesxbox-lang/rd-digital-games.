@@ -440,6 +440,10 @@ const App: React.FC = () => {
                               <label className="text-[9px] font-black text-gray-500 uppercase">URL da Logo (PNG transparente)</label>
                               <input type="text" value={siteSettings.logo_url} onChange={e => handleUpdateSetting('logo_url', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-4 text-white text-xs" />
                            </div>
+                           <div className="col-span-2 space-y-2">
+                              <label className="text-[9px] font-black text-gray-500 uppercase">URL da Imagem Hero (Início do Site)</label>
+                              <input type="text" value={siteSettings.hero_image} onChange={e => handleUpdateSetting('hero_image', e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-4 text-white text-xs" />
+                           </div>
                         </div>
                       </div>
                    </div>
