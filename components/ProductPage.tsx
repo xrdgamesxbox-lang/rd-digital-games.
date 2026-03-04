@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { X, ShoppingCart, ArrowLeft, ShieldCheck, Zap, Rocket, Calendar, Check, Users, UserPlus, AlertTriangle, Key } from 'lucide-react';
+import { X, ShoppingCart, ArrowLeft, ShieldCheck, Zap, Rocket, Calendar, Check, Users, UserPlus, AlertTriangle, Key, Link, Copy } from 'lucide-react';
 import { Game } from '../types.ts';
 
 interface ProductPageProps {
@@ -16,10 +16,19 @@ const ProductPage: React.FC<ProductPageProps> = ({ game, onClose, onAddToCart })
   const [accountType, setAccountType] = useState<'parental' | 'exclusiva'>(
     parentalStock ? 'parental' : 'exclusiva'
   );
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
+
+  const handleCopyLink = () => {
+    const url = new URL(window.location.href);
+    url.searchParams.set('product', game.id);
+    navigator.clipboard.writeText(url.toString());
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   useEffect(() => {
     if (!parentalStock && exclusiveStock) setAccountType('exclusiva');
@@ -57,9 +66,29 @@ const ProductPage: React.FC<ProductPageProps> = ({ game, onClose, onAddToCart })
         <button onClick={onClose} className="flex items-center gap-2 text-white hover:text-[var(--neon-green)] transition-colors">
           <ArrowLeft className="w-5 h-5" /> <span className="text-xs font-black uppercase tracking-widest">VOLTAR</span>
         </button>
-        <span className="text-[10px] font-black uppercase tracking-widest text-gray-500 hidden md:block">
-           {game.category === 'jogo' ? 'JOGO DIGITAL' : game.category === 'codigo25' ? 'CÓDIGO 25 DÍGITOS' : game.category.toUpperCase()}
-        </span>
+        
+        <div className="flex items-center gap-4">
+          <button 
+            onClick={handleCopyLink}
+            className="flex items-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 px-4 py-2 rounded-full transition-all group"
+          >
+            {copied ? (
+              <>
+                <Check className="w-4 h-4 text-[var(--neon-green)]" />
+                <span className="text-[10px] font-black uppercase tracking-widest text-[var(--neon-green)]">COPIADO!</span>
+              </>
+            ) : (
+              <>
+                <Link className="w-4 h-4 text-gray-400 group-hover:text-white transition-colors" />
+                <span className="text-[10px] font-black uppercase tracking-widest text-gray-400 group-hover:text-white transition-colors">COPIAR LINK</span>
+              </>
+            )}
+          </button>
+
+          <span className="text-[10px] font-black uppercase tracking-widest text-gray-500 hidden md:block">
+             {game.category === 'jogo' ? 'JOGO DIGITAL' : game.category === 'codigo25' ? 'CÓDIGO 25 DÍGITOS' : game.category.toUpperCase()}
+          </span>
+        </div>
       </div>
 
       <div className="max-w-7xl mx-auto p-6 md:p-12 pb-32">

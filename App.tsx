@@ -119,6 +119,17 @@ const App: React.FC = () => {
     setLoading(false);
   };
 
+  useEffect(() => {
+    if (games.length > 0) {
+      const params = new URLSearchParams(window.location.search);
+      const productId = params.get('product');
+      if (productId) {
+        const product = games.find(g => g.id === productId);
+        if (product) setSelectedProduct(product);
+      }
+    }
+  }, [games]);
+
   const trackVisit = async () => { try { await supabase.from('site_visits').insert([{ user_agent: navigator.userAgent }]); } catch (e) {} };
   
   const fetchStats = async () => {
@@ -214,13 +225,23 @@ const App: React.FC = () => {
   // Fix: Defined handleOpenProduct to set the selected product and open its details page
   const handleOpenProduct = (game: Game) => {
     setSelectedProduct(game);
+    const url = new URL(window.location.href);
+    url.searchParams.set('product', game.id);
+    window.history.replaceState({}, '', url.toString());
+  };
+
+  const handleCloseProduct = () => {
+    setSelectedProduct(null);
+    const url = new URL(window.location.href);
+    url.searchParams.delete('product');
+    window.history.replaceState({}, '', url.toString());
   };
 
   if (loading) return <div className="min-h-screen flex items-center justify-center bg-black"><Loader2 className="w-12 h-12 text-[var(--neon-green)] animate-spin" /></div>;
 
   return (
     <div className="flex flex-col min-h-screen" style={{ color: siteSettings.text_color, backgroundColor: siteSettings.bg_color }}>
-      {selectedProduct && <ProductPage game={selectedProduct} onClose={() => setSelectedProduct(null)} onAddToCart={addToCart} />}
+      {selectedProduct && <ProductPage game={selectedProduct} onClose={handleCloseProduct} onAddToCart={addToCart} />}
       {showAdminModal && <AdminModal onClose={() => {setShowAdminModal(false); setEditingGame(null)}} onSave={handleSaveGame} initialData={editingGame} />}
       <CartDrawer isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} items={cart} onRemove={(id) => setCart(cart.filter(i => i.cartId !== id))} onClear={() => setCart([])} siteSettings={siteSettings} customerEmail={user?.email} />
       
